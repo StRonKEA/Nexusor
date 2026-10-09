@@ -51,43 +51,46 @@ fn open_terminal_with_command(command: String) -> tauri::Result<()> {
 
 #[tauri::command]
 fn is_headless_service_installed() -> bool {
-    let output = Command::new("schtasks")
-        .args(["/query", "/tn", "NexusorBackgroundService"])
-        .output();
-    output.is_ok_and(|out| out.status.success())
+    #[cfg(windows)]
+    {
+        use winreg::enums::{HKEY_CURRENT_USER, KEY_READ};
+        use winreg::RegKey;
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        if let Ok(run_key) = hkcu.open_subkey_with_flags(r"Software\Microsoft\Windows\CurrentVersion\Run", KEY_READ) {
+            return run_key.get_value::<String, _>("NexusorHeadlessService").is_ok();
+        }
+    }
+    false
 }
 
 #[tauri::command]
 fn set_headless_service(enabled: bool) -> Result<(), String> {
-    if enabled {
-        let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-        let dir = exe.parent().ok_or_else(|| "cannot find exe parent directory".to_string())?;
-        
-        // Prefer cursor-server.exe if present, otherwise use nexusor-desktop.exe with --silent
-        let target_cmd = if dir.join("cursor-server.exe").exists() {
-            format!("\"{}\"", dir.join("cursor-server.exe").to_string_lossy())
-        } else {
-            format!("\"{}\" --silent", exe.to_string_lossy())
-        };
+    #[cfg(windows)]
+    {
+        use winreg::enums::{HKEY_CURRENT_USER, KEY_SET_VALUE};
+        use winreg::RegKey;
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let (run_key, _) = hkcu
+            .create_subkey_with_flags(r"Software\Microsoft\Windows\CurrentVersion\Run", KEY_SET_VALUE)
+            .map_err(|e| format!("registry access error: {e}"))?;
 
-        let status = Command::new("schtasks")
-            .args([
-                "/create",
-                "/tn", "NexusorBackgroundService",
-                "/tr", &target_cmd,
-                "/sc", "onlogon",
-                "/f"
-            ])
-            .status()
-            .map_err(|e| e.to_string())?;
-        if !status.success() {
-            return Err("schtasks /create failed".into());
+        if enabled {
+            let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+            let dir = exe.parent().ok_or_else(|| "cannot find exe parent directory".to_string())?;
+            let target_cmd = if dir.join("cursor-server.exe").exists() {
+                format!("\"{}\"", dir.join("cursor-server.exe").to_string_lossy())
+            } else {
+                format!("\"{}\" --silent", exe.to_string_lossy())
+            };
+            run_key
+                .set_value("NexusorHeadlessService", &target_cmd)
+                .map_err(|e| format!("failed to register startup key: {e}"))?;
+        } else {
+            let _ = run_key.delete_value("NexusorHeadlessService");
         }
-    } else {
-        let _ = Command::new("schtasks")
-            .args(["/delete", "/tn", "NexusorBackgroundService", "/f"])
-            .status();
+        return Ok(());
     }
+    #[cfg(not(windows))]
     Ok(())
 }
 
