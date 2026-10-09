@@ -86,12 +86,18 @@ fn set_headless_service(app: AppHandle, enabled: bool) -> Result<(), String> {
                 .set_value("NexusorHeadlessService", &target_cmd)
                 .map_err(|e| format!("failed to register startup key: {e}"))?;
 
-            // Aktif çalışan UI penceresi varsa hemen gizle (anında sessiz arka plan servisine dönüş)
+            // Tray simgesini kaldır ve aktif çalışan UI penceresini kapat (tamamen görünmez arka plan servisine dönüş)
+            if let Some(tray) = app.tray_by_id("main") {
+                let _ = tray.set_visible(false);
+            }
             if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
                 let _ = window.close();
             }
         } else {
             let _ = run_key.delete_value("NexusorHeadlessService");
+            if let Some(tray) = app.tray_by_id("main") {
+                let _ = tray.set_visible(true);
+            }
         }
         return Ok(());
     }
@@ -320,7 +326,9 @@ pub fn run() -> ExitCode {
             } else {
                 open_main_window(app.handle())?;
             }
-            tray::create(app)?;
+            if !started_silent {
+                tray::create(app)?;
+            }
             Ok(())
         })
         .build(tauri::generate_context!());
