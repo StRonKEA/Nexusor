@@ -25,3 +25,13 @@ Thumbs.db
 *~
 .idea/
 .vscode/
+.cursor/
+
+# Personal and agent internal documentation
+/AGENTS.md
+/STATUS.md
+/PROJECT_REVIEW.md
+/FIRST_RUN.md
+/scripts/legacy/README.md
+/server/src/media/README.md
+
