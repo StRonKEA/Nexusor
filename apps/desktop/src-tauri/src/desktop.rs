@@ -62,16 +62,19 @@ fn set_headless_service(enabled: bool) -> Result<(), String> {
     if enabled {
         let exe = std::env::current_exe().map_err(|e| e.to_string())?;
         let dir = exe.parent().ok_or_else(|| "cannot find exe parent directory".to_string())?;
-        let server_exe = dir.join("cursor-server.exe");
-        if !server_exe.exists() {
-            return Err("cursor-server.exe not found".into());
-        }
-        let target = format!("\"{}\"", server_exe.to_string_lossy());
+        
+        // Prefer cursor-server.exe if present, otherwise use nexusor-desktop.exe with --silent
+        let target_cmd = if dir.join("cursor-server.exe").exists() {
+            format!("\"{}\"", dir.join("cursor-server.exe").to_string_lossy())
+        } else {
+            format!("\"{}\" --silent", exe.to_string_lossy())
+        };
+
         let status = Command::new("schtasks")
             .args([
                 "/create",
                 "/tn", "NexusorBackgroundService",
-                "/tr", &target,
+                "/tr", &target_cmd,
                 "/sc", "onlogon",
                 "/f"
             ])
@@ -299,8 +302,10 @@ pub fn run() -> ExitCode {
                 exiting: AtomicBool::new(false),
                 server_addr: address,
             });
-            if desktop_settings.silent_start && started_by_autostart {
-                tracing::info!("silent autostart enabled; starting without the main window");
+            let started_silent = started_by_autostart
+                || std::env::args().any(|arg| arg == "--silent" || arg == "-s");
+            if (desktop_settings.silent_start && started_by_autostart) || started_silent {
+                tracing::info!("silent start requested; starting without the main window");
             } else {
                 open_main_window(app.handle())?;
             }

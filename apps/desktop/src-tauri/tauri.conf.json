@@ -21,11 +21,7 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
-    "resources": {
-      "../../../scripts/setup-media.ps1": "scripts/setup-media.ps1",
-      "../../../FIRST_RUN.md": "FIRST_RUN.md",
-      "../../../STATUS.md": "STATUS.md"
-    },
+    "resources": {},
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
