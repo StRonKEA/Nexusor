@@ -1,0 +1,8 @@
+.root {
+  padding: 0;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-editorWidget-border);
+  border-radius: var(--oa-card-radius);
+  box-shadow: var(--oa-card-shadow);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}

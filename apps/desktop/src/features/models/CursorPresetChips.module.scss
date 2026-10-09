@@ -1,0 +1,54 @@
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--vscode-descriptionForeground, #8a8f98);
+}
+
+.chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--vscode-descriptionForeground, #8a8f98);
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.12s ease-in-out;
+  cursor: pointer;
+
+  &:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+  }
+
+  &.active {
+    background: rgba(94, 106, 210, 0.18);
+    border-color: rgba(94, 106, 210, 0.6);
+    color: #ffffff;
+    box-shadow: 0 0 8px rgba(94, 106, 210, 0.25);
+  }
+}
+
+.icon {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  object-fit: contain;
+}

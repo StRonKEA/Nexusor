@@ -1,0 +1,428 @@
+@use "../../styles/typography" as type;
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.strategyCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-widget-border, rgba(255, 255, 255, 0.1));
+  border-radius: 8px;
+}
+
+.strategyInfo {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  strong {
+    font-size: type.$font-size-base;
+  }
+
+  small {
+    color: var(--vscode-descriptionForeground);
+    font-size: type.$font-size-xs;
+  }
+}
+
+.strategySelect {
+  min-width: 260px;
+  flex: 0 1 340px;
+}
+
+.methodCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.methodHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  strong {
+    font-size: type.$font-size-base;
+  }
+
+  small {
+    color: var(--vscode-descriptionForeground);
+    font-size: type.$font-size-xs;
+  }
+}
+
+.codeBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: var(--vscode-textCodeBlock-background);
+  border: 1px solid var(--vscode-sideBar-border);
+  border-radius: 6px;
+}
+
+.codeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  code {
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--vscode-textLink-activeForeground, #4fc1ff);
+  }
+}
+
+.actions,
+.toolbar,
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.providerList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.providerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 8px;
+}
+
+.providerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  strong {
+    font-size: type.$font-size-base;
+  }
+
+  span {
+    color: var(--vscode-descriptionForeground);
+    font-size: type.$font-size-xs;
+  }
+}
+
+.resourceSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.resourceList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.resourceRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-widget-border, rgba(255, 255, 255, 0.1));
+}
+
+.resourceInfo {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  strong {
+    font-size: 1rem;
+    color: var(--vscode-editor-foreground);
+  }
+}
+
+.resourceTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stateBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #8a8f98;
+  white-space: nowrap;
+}
+
+.stateReady {
+  color: #27c376;
+  background: rgba(39, 195, 118, 0.1);
+  border-color: rgba(39, 195, 118, 0.25);
+}
+
+.stateCooling {
+  color: #f2994a;
+  background: rgba(242, 153, 74, 0.1);
+  border-color: rgba(242, 153, 74, 0.25);
+}
+
+.stateInvalid {
+  color: #eb5757;
+  background: rgba(235, 87, 87, 0.1);
+  border-color: rgba(235, 87, 87, 0.25);
+}
+
+.stateDisabled {
+  color: #8a8f98;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.compactHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.accountInfoBadge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.accountEmail {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #f7f8f8;
+}
+
+.accountPlanBadge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(94, 106, 210, 0.12);
+  color: #7075f5;
+  border: 1px solid rgba(94, 106, 210, 0.25);
+}
+
+.accountNoteBadge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(165, 180, 252, 0.1);
+  color: #c7d2fe;
+  border: 1px solid rgba(165, 180, 252, 0.22);
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: rgba(165, 180, 252, 0.18);
+    border-color: rgba(165, 180, 252, 0.4);
+  }
+}
+
+.editNoteBtn {
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    color: #e5e7eb;
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.resourceSub {
+  color: var(--vscode-descriptionForeground);
+  font-size: type.$font-size-xs;
+}
+
+.metricTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.quotaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.quotaLabel {
+  font-size: 11px;
+  font-weight: 500;
+  color: #8a8f98;
+  white-space: nowrap;
+}
+
+.quotaTrack {
+  width: 44px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.quotaFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.quotaValue {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: monospace;
+  color: #e0e0e0;
+}
+
+.quotaReset {
+  font-size: 10px;
+  color: #6b7280;
+  margin-left: 2px;
+}
+
+.actionResult {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.actionCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+.actionField {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  small {
+    color: var(--vscode-descriptionForeground);
+  }
+
+  code {
+    overflow-wrap: anywhere;
+  }
+}
+
+.modelDialog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modelTable {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--vscode-sideBar-border);
+    text-align: left;
+  }
+
+  th:last-child,
+  td:last-child {
+    width: 80px;
+    text-align: center;
+  }
+
+  td:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    code {
+      color: var(--vscode-descriptionForeground);
+      font-size: type.$font-size-xs;
+    }
+  }
+}
+
+.success {
+  color: var(--vscode-testing-iconPassed, #73c991);
+  font-size: type.$font-size-xs;
+}
+
+.error {
+  color: var(--vscode-errorForeground, #f48771);
+  font-size: type.$font-size-xs;
+}
+
+.empty {
+  color: var(--vscode-descriptionForeground);
+  font-size: type.$font-size-xs;
+  font-style: italic;
+  padding: 12px 0;
+}
+
+@media (max-width: 960px) {
+  .strategyCard,
+  .providerRow,
+  .resourceRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .strategySelect {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+  }
+}

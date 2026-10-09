@@ -1,0 +1,69 @@
+@mixin vscode-theme($tokens) {
+  @each $name, $value in $tokens {
+    --vscode-#{$name}: #{$value};
+  }
+}
+
+:root {
+  --oa-card-radius: 8px;
+  --oa-overlay-radius: 8px;
+  --oa-btn-radius: 6px;
+}
+
+:root:not([data-platform="macos"]) {
+  --oa-card-radius: 8px;
+  --oa-overlay-radius: 8px;
+  --oa-btn-radius: 6px;
+}
+
+:root,
+:root[data-theme="default-dark"] {
+  --oa-tooltip-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  --oa-dropdown-shadow: 0 16px 36px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --oa-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  @include vscode-theme((
+    foreground: #f7f8f8,
+    errorForeground: #eb5757,
+    descriptionForeground: #8a8f98,
+    focusBorder: #5e6ad2,
+    textLink-foreground: #7075f5,
+    textCodeBlock-background: #17181c,
+    editor-background: #0b0c0e,
+    editor-selectionBackground: rgba(94, 106, 210, 0.3),
+    editor-selectionForeground: #ffffff,
+    editorCursor-foreground: #ffffff,
+    editorLineNumber-foreground: #4a4d57,
+    editorLineNumber-activeForeground: #f7f8f8,
+    editorWidget-background: #131418,
+    editorWidget-border: rgba(255, 255, 255, 0.08),
+    editorHoverWidget-background: #16171b,
+    editorHoverWidget-border: rgba(255, 255, 255, 0.1),
+    editorHoverWidget-foreground: #f7f8f8,
+    sideBar-border: rgba(255, 255, 255, 0.06),
+    list-activeSelectionBackground: rgba(255, 255, 255, 0.08),
+    list-activeSelectionForeground: #ffffff,
+    list-hoverBackground: rgba(255, 255, 255, 0.04),
+    input-background: #16171b,
+    input-foreground: #f7f8f8,
+    input-border: rgba(255, 255, 255, 0.08),
+    button-background: #5e6ad2,
+    button-foreground: #ffffff,
+    dropdown-background: #16171b,
+    dropdown-foreground: #f7f8f8,
+    dropdown-border: rgba(255, 255, 255, 0.08),
+    badge-background: #5e6ad2,
+    badge-foreground: #ffffff,
+    scrollbarSlider-background: rgba(255, 255, 255, 0.06),
+    scrollbarSlider-hoverBackground: rgba(255, 255, 255, 0.12),
+    scrollbarSlider-activeBackground: rgba(255, 255, 255, 0.2),
+    gitDecoration-addedResourceForeground: #27c376,
+    notifications-background: #16171b,
+    notifications-foreground: #f7f8f8,
+    notifications-border: rgba(255, 255, 255, 0.1),
+    checkbox-background: rgba(255, 255, 255, 0.06),
+    checkbox-foreground: #ffffff,
+    checkbox-border: rgba(255, 255, 255, 0.12),
+  ));
+  color-scheme: dark;
+}

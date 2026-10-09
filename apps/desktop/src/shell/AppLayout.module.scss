@@ -1,0 +1,224 @@
+@use "../styles/typography" as type;
+
+.root {
+  --app-region-gap: 16px;
+  --app-toolbar-height: 36px;
+  --app-page-max-width: 1280px;
+  --app-page-padding: 18px;
+  --app-content-left: calc(var(--app-edge) + var(--app-menu-width) );
+  --app-content-top: calc(var(--window-safe-top) + var(--app-toolbar-height) + 10px );
+  background: var(--vscode-editor-background);
+}
+
+.menuCard {
+  position: fixed;
+  z-index: 10;
+  top: calc(var(--window-menu-top));
+  bottom: var(--app-edge);
+  left: var(--app-edge);
+  width: var(--app-menu-width);
+  overflow: hidden;
+}
+
+.navigation {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.navigationList {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+  }
+}
+
+.navigationGroup {
+  display: flex;
+  align-items: center;
+  color: #62666d;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 10px 10px 4px;
+  margin-top: 2px;
+}
+
+.navigationRow {
+  flex: 0 0 34px;
+  display: flex;
+  align-items: stretch;
+  margin-bottom: 1px;
+
+  a,
+  button {
+    width: 100%;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 10px;
+    color: var(--vscode-descriptionForeground);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.12s ease-in-out;
+
+    &:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    &[aria-current="page"] {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+  }
+
+  button {
+    font: inherit;
+    text-align: left;
+    background: transparent;
+    border: 0;
+  }
+}
+
+.menuStatusTag {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 1px 6px;
+  color: var(--vscode-descriptionForeground);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.4;
+
+  &[data-taken] {
+    color: #27c376;
+    background: rgba(39, 195, 118, 0.12);
+    border-color: rgba(39, 195, 118, 0.28);
+  }
+}
+
+.menuIndicatorDot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  margin-left: auto;
+  background: #ef4444;
+  border-radius: 50%;
+}
+
+.content {
+  width: calc(100% - var(--app-content-left));
+  height: 100%;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  margin-left: var(--app-content-left);
+  overflow: hidden;
+}
+
+.keepAliveContainer,
+.keepAlivePage {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.actionRegion {
+  position: absolute;
+  z-index: 12500;
+  top: var(--window-safe-top);
+  right: max(var(--app-page-padding), calc((100% - var(--app-page-max-width)) / 2));
+  height: calc(var(--app-content-top) - var(--window-safe-top));
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  -webkit-app-region: no-drag;
+}
+
+.actions {
+  height: var(--app-toolbar-height);
+  min-width: var(--app-toolbar-height);
+  max-width: min(100vw - var(--app-content-left) - 24px, 720px);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 6px 6px;
+  gap: 3px;
+  box-shadow: 0 0px 6px 4px var(--vscode-editor-background);
+  transform: translateX(6px);
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.pageActions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  flex-wrap: nowrap;
+
+  &:empty {
+    display: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .root {
+    --app-page-padding: 14px;
+    --app-page-max-width: 100%;
+  }
+}
+
+@media (max-width: 960px) {
+  .root {
+    --app-page-padding: 12px;
+    --app-toolbar-height: 32px;
+  }
+
+  .navigationRow {
+    a,
+    button {
+      gap: 4px;
+      padding: 0 8px;
+      font-size: type.$font-size-xs;
+    }
+  }
+
+  .menuStatusTag {
+    display: none;
+  }
+
+  .actions {
+    padding: 4px;
+    transform: translateX(0);
+  }
+}
+

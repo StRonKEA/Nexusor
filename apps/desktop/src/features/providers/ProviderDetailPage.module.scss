@@ -1,0 +1,96 @@
+@use "../../styles/typography" as type;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 10px;
+}
+
+.headerCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+}
+
+@media (max-width: 960px) {
+  .headerCard {
+    align-items: flex-start;
+  }
+
+  .toolbar {
+    width: 100%;
+  }
+}
+
+.icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+}
+
+.headerText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  strong {
+    font-size: type.$font-size-base;
+    font-weight: 600;
+  }
+
+  span,
+  small {
+    color: var(--vscode-descriptionForeground);
+    font-size: type.$font-size-xs;
+  }
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.backLink {
+  color: var(--vscode-textLink-foreground);
+  font-size: type.$font-size-xs;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--vscode-textLink-activeForeground);
+  }
+}
+
+.banner {
+  padding: 10px 12px;
+  color: var(--vscode-foreground);
+  background: color-mix(in srgb, var(--vscode-focusBorder) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--vscode-focusBorder) 28%, transparent);
+  border-radius: 6px;
+  font-size: type.$font-size-xs;
+}
+
+.empty {
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--vscode-descriptionForeground);
+  text-align: center;
+  border: 1px dashed var(--vscode-sideBar-border);
+  border-radius: var(--oa-overlay-radius);
+
+  strong {
+    color: var(--vscode-foreground);
+  }
+
+  a {
+    color: var(--vscode-textLink-foreground);
+  }
+}

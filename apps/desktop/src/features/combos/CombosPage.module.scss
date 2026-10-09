@@ -1,0 +1,1616 @@
+// ─── Page ─────────────────────────────────────────────────────────────────────
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.5rem 0 2rem;
+}
+
+.addRow {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 0.5rem;
+}
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 320px;
+  text-align: center;
+  padding: 3rem 2rem;
+  border-radius: 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.emptyIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.35;
+  color: var(--text-secondary, #8a8f98);
+
+  svg {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+.emptyTitle {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #f7f8f8;
+}
+
+.emptyDesc {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #8a8f98);
+  max-width: 380px;
+  line-height: 1.6;
+}
+
+// ─── Combo Card (read view) ───────────────────────────────────────────────────
+.comboCard {
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.comboCardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.comboCardMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dotActive {
+  background: #4ade80;
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.5);
+}
+.dotOff {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.comboName {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #f7f8f8;
+}
+
+.disabledTag {
+  font-size: 0.75rem;
+  color: var(--text-tertiary, #666);
+  font-weight: 400;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.comboBadge {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent, #5e6ad2);
+  background: rgba(94, 106, 210, 0.12);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.comboCardActions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.comboDesc {
+  margin: 0;
+  font-size: 0.825rem;
+  color: var(--text-secondary, #8a8f98);
+}
+
+// ─── Slot read view ───────────────────────────────────────────────────────────
+.slotReadList {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.slotReadGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.slotRead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+}
+
+.slotReadIndex {
+  font-size: 0.72rem;
+  color: var(--text-tertiary, #666);
+  min-width: 14px;
+}
+
+.slotReadIcon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  border-radius: 3px;
+}
+
+.slotReadName {
+  font-weight: 500;
+  color: #e8e9eb;
+}
+
+.slotReadProvider {
+  font-size: 0.72rem;
+  color: var(--text-tertiary, #666);
+}
+
+.slotReadStrategy {
+  font-size: 0.72rem;
+  color: var(--accent, #5e6ad2);
+  background: rgba(94, 106, 210, 0.1);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.slotArrow {
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 0.8rem;
+  margin-left: 2px;
+}
+
+// ─── Modal body ───────────────────────────────────────────────────────────────
+.modalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sectionHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 0.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sectionTitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary, #8a8f98);
+}
+
+.sectionHint {
+  font-size: 0.78rem;
+  color: var(--text-tertiary, #666);
+}
+
+// ─── Slot edit ────────────────────────────────────────────────────────────────
+.emptySlots {
+  font-size: 0.825rem;
+  color: var(--text-tertiary, #666);
+  font-style: italic;
+  padding: 0.5rem 0;
+}
+
+.slotList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.slot {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.slotIndex {
+  font-size: 0.72rem;
+  color: var(--text-tertiary, #666);
+  min-width: 18px;
+  padding-top: 3px;
+}
+
+.slotBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.slotHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.slotIcon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.slotName {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: #f0f1f3;
+}
+
+.slotProvider {
+  font-size: 0.78rem;
+  color: var(--text-secondary, #8a8f98);
+}
+
+.slotStrategy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.strategyLabel {
+  font-size: 0.78rem;
+  color: var(--text-secondary, #8a8f98);
+}
+
+.strategyNote {
+  font-size: 0.72rem;
+  color: var(--text-tertiary, #666);
+  font-style: italic;
+}
+
+.slotActions {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.slotBtn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: var(--text-secondary, #8a8f98);
+  cursor: pointer;
+  font-size: 0.72rem;
+  line-height: 1;
+  padding: 3px 5px;
+  transition: color 0.12s, border-color 0.12s;
+
+  &:hover:not(:disabled) {
+    color: #f0f1f3;
+    border-color: rgba(255, 255, 255, 0.22);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+}
+
+.slotBtnRemove {
+  &:hover:not(:disabled) {
+    color: #f87171;
+    border-color: rgba(248, 113, 113, 0.4);
+  }
+}
+
+// ─── Radio group (chain behavior) ────────────────────────────────────────────
+.radioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.radioLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  transition: border-color 0.12s, background 0.12s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+
+  input[type="radio"] {
+    margin-top: 3px;
+    flex-shrink: 0;
+    accent-color: var(--accent, #5e6ad2);
+  }
+}
+
+.radioText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  strong {
+    font-size: 0.875rem;
+    color: #f0f1f3;
+    font-weight: 600;
+  }
+
+  small {
+    font-size: 0.78rem;
+    color: var(--text-secondary, #8a8f98);
+    line-height: 1.4;
+  }
+}
+
+// ─── Model picker modal ───────────────────────────────────────────────────────
+.pickerBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pickerList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.pickerEmpty {
+  font-size: 0.825rem;
+  color: var(--text-tertiary, #666);
+  padding: 1rem;
+  text-align: center;
+}
+
+.pickerRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 6px;
+  background: none;
+  border: none;
+  color: #e8e9eb;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.1s;
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.5;
+  }
+}
+
+.pickerRowAdded {
+  opacity: 0.45;
+}
+
+.pickerIcon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.pickerInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.pickerName {
+  font-size: 0.875rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pickerProvider {
+  font-size: 0.78rem;
+  color: var(--text-secondary, #8a8f98);
+}
+
+.pickerAdded {
+  font-size: 0.875rem;
+  color: #4ade80;
+  flex-shrink: 0;
+}
+
+
+// ─── Wizard layout ────────────────────────────────────────────────────────────
+// wizardWrap fills Modal's .bodyContent padding box
+// and uses flex-column so the scroll area can flex-grow.
+.wizardWrap {
+  display: flex;
+  flex-direction: column;
+  // Don't set height here — Modal controls max-height.
+  // But we need the scroll area to be bounded, so we set a reasonable min.
+  min-height: 0;
+  gap: 0;
+}
+
+.wizardProgress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 12px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
+}
+
+.wizardDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  transition: background 0.2s;
+}
+.wizardDotActive { background: var(--accent, #5e6ad2); }
+
+.wizardStepLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary, #8a8f98);
+  margin-left: 6px;
+}
+
+// The scrollable content area
+.wizardScroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 240px;
+  max-height: 52vh; // cap so footer always visible
+  padding-right: 2px; // room for scrollbar
+}
+
+// Inner root of each step (just spacing)
+.stepRoot {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0 8px;
+}
+
+.stepHint {
+  margin: 0;
+  font-size: 0.825rem;
+  color: var(--text-secondary, #8a8f98);
+  line-height: 1.5;
+}
+
+.stepWarning {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #fb923c;
+  background: rgba(251,146,60,0.08);
+  border: 1px solid rgba(251,146,60,0.2);
+  border-radius: 5px;
+  padding: 6px 10px;
+}
+
+// ─── Account groups (used in step 1 & 2) ─────────────────────────────────────
+.accountGroup {
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.accountGroupHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  background: rgba(255,255,255,0.04);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary, #8a8f98);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  user-select: none;
+}
+
+.groupIcon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.groupCount {
+  margin-left: auto;
+  font-size: 0.72rem;
+  background: rgba(255,255,255,0.08);
+  padding: 1px 6px;
+  border-radius: 10px;
+  color: var(--text-tertiary, #666);
+}
+
+// Step 1: account row
+.accountRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  cursor: pointer;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.1s;
+
+  input[type="checkbox"] {
+    flex-shrink: 0;
+    accent-color: var(--accent, #5e6ad2);
+    width: 15px;
+    height: 15px;
+  }
+
+  &:hover { background: rgba(255,255,255,0.04); }
+}
+.accountRowSel { background: rgba(94,106,210,0.07); }
+
+.accountInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.accountLabel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #e8e9eb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.accountSub {
+  font-size: 0.74rem;
+  color: var(--text-tertiary, #666);
+}
+
+.accountStatus {
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+.statusReady   { color: #4ade80; }
+.statusCooling { color: #fb923c; }
+.statusDisabled { color: #8a8f98; }
+.statusInvalid { color: #f87171; }
+
+// Step 2: Account header in "models under account" view
+.accountHeaderInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+
+  span:first-child {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #e8e9eb;
+  }
+}
+
+.accountHeaderSub {
+  font-size: 0.72rem;
+  color: var(--text-tertiary, #666);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+// Step 2: model row (indented under account)
+.modelRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 8px 24px; // extra left indent
+  cursor: pointer;
+  border-top: 1px solid rgba(255,255,255,0.04);
+  transition: background 0.1s;
+
+  input[type="checkbox"] {
+    flex-shrink: 0;
+    accent-color: var(--accent, #5e6ad2);
+    width: 14px;
+    height: 14px;
+  }
+
+  &:hover { background: rgba(255,255,255,0.03); }
+}
+.modelRowSel { background: rgba(94,106,210,0.07); }
+
+.modelLabel {
+  flex: 1;
+  font-size: 0.85rem;
+  color: #e8e9eb;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selectedBadge {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent, #5e6ad2);
+  background: rgba(94,106,210,0.15);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+// ─── Step 3: Slot ordering list ───────────────────────────────────────────────
+.slotList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.slot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 7px;
+  transition: background 0.1s;
+}
+
+.slotIndex {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(94,106,210,0.2);
+  color: var(--accent, #5e6ad2);
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.slotIcon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.slotName {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #e8e9eb;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slotMoves {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.slotMoveBtn {
+  width: 22px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: #e8e9eb;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.1s;
+  padding: 0;
+
+  &:hover:not(:disabled) { background: rgba(255,255,255,0.12); }
+  &:disabled { opacity: 0.3; cursor: not-allowed; }
+}
+
+// ─── Section divider ──────────────────────────────────────────────────────────
+.sectionDivider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary, #8a8f98);
+  margin-top: 6px;
+
+  &::before, &::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: rgba(255,255,255,0.07);
+  }
+}
+
+// ─── Radio cards (chain behavior) ─────────────────────────────────────────────
+.radioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.radioCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 13px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+
+  input[type="radio"] {
+    flex-shrink: 0;
+    margin-top: 3px;
+    accent-color: var(--accent, #5e6ad2);
+    width: 14px;
+    height: 14px;
+  }
+
+  &:hover { background: rgba(255,255,255,0.03); }
+}
+.radioCardSel {
+  border-color: var(--accent, #5e6ad2);
+  background: rgba(94,106,210,0.07);
+}
+
+.radioCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.radioCardTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #e8e9eb;
+}
+
+.radioCardDesc {
+  font-size: 0.78rem;
+  color: var(--text-secondary, #8a8f98);
+  line-height: 1.4;
+}
+
+// ─── Step 4: Form ─────────────────────────────────────────────────────────────
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.formLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary, #8a8f98);
+}
+
+.formInput {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: #f0f1f3;
+  font-size: 0.875rem;
+  padding: 8px 10px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.12s;
+
+  &:focus { outline: none; border-color: var(--accent, #5e6ad2); }
+  &::placeholder { color: var(--text-tertiary, #555); }
+}
+
+// ─── Summary box (Step 4) ─────────────────────────────────────────────────
+.summaryBox {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.summaryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.summaryTitle {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary, #8a8f98);
+}
+
+.summaryMeta {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent, #5e6ad2);
+}
+
+.summaryVerticalList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.summaryItemWrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.summaryRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 6px;
+}
+
+.summaryRowIndex {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(94, 106, 210, 0.2);
+  color: var(--accent, #5e6ad2);
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.summaryRowIcon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.summaryRowModel {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #f0f1f3;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.summaryRowAccount {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #8a8f98);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+
+.summaryConnector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 20px;
+}
+
+.summaryConnectorLine {
+  width: 1px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  margin-left: -1px;
+}
+
+.summaryConnectorLabel {
+  font-size: 0.73rem;
+  color: var(--text-tertiary, #777);
+  font-style: italic;
+}
+
+// ─── Cursor Auto Mode Card ───────────────────────────────────────────────────
+.autoCard {
+  padding: 1.1rem 1.25rem;
+  background: linear-gradient(135deg, rgba(94, 106, 210, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(94, 106, 210, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  border-radius: 8px;
+}
+
+.autoCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.autoCardTitleGroup {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.autoCardIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  color: var(--accent, #5e6ad2);
+  background: rgba(94, 106, 210, 0.12);
+  border: 1px solid rgba(94, 106, 210, 0.25);
+  border-radius: 8px;
+  flex-shrink: 0;
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.autoCatIconSvg {
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent, #5e6ad2);
+  margin-right: 4px;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.autoCardTitle {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #f7f8f8;
+}
+
+.autoCardDesc {
+  margin: 0;
+  font-size: 0.825rem;
+  color: var(--text-secondary, #8a8f98);
+  line-height: 1.5;
+  max-width: 640px;
+}
+
+.autoCardToggle {
+  flex-shrink: 0;
+}
+
+.autoCardStatus {
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.autoCardActivePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+}
+
+.autoDotActive {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.5);
+  flex-shrink: 0;
+}
+
+.autoPillLabel {
+  color: var(--text-secondary, #8a8f98);
+}
+
+.autoPillName {
+  color: #f0f1f3;
+  font-weight: 600;
+}
+
+.autoPillCount {
+  color: var(--accent, #5e6ad2);
+  font-size: 0.75rem;
+}
+
+.autoCardEmptyPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(251, 146, 60, 0.08);
+  border: 1px solid rgba(251, 146, 60, 0.2);
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  color: #fb923c;
+}
+
+.autoComboBadge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+}
+
+.wizardNav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  margin-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
+}
+.emptySlots {
+  font-size: 0.825rem;
+  color: var(--text-tertiary, #666);
+  font-style: italic;
+  text-align: center;
+  padding: 1rem;
+}
+.slotReadMeta {
+  font-size: 0.72rem;
+  color: var(--accent, #5e6ad2);
+  background: rgba(94,106,210,0.1);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+// ─── Search bar (Step 2) ──────────────────────────────────────────────────────
+.searchBar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.searchInput {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #f0f1f3;
+  font-size: 0.825rem;
+  padding: 7px 30px 7px 10px;
+  transition: border-color 0.12s;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent, #5e6ad2);
+  }
+  &::placeholder {
+    color: var(--text-tertiary, #555);
+  }
+}
+
+.searchClearBtn {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--text-tertiary, #888);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+
+  &:hover {
+    color: #fff;
+  }
+}
+
+// ─── Step 3 slot details ──────────────────────────────────────────────────────
+.slotInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.slotAccountBadge {
+  font-size: 0.72rem;
+  color: var(--text-secondary, #8a8f98);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// ─── Step 4 summary items ─────────────────────────────────────────────────────
+.summaryItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.summaryAccount {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #8a8f98);
+}
+
+// ─── Combo Card slot read account ─────────────────────────────────────────────
+.slotReadAccount {
+  font-size: 0.7rem;
+  color: var(--text-tertiary, #888);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 2px;
+}
+
+
+// ─── Auto Router Card Enhancements ──────────────────────────────────────────
+.autoCardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.autoActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.autoCategoriesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+@media (max-width: 960px) {
+  .autoCategoriesGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.autoCategoryCard {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 7px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 180px;
+}
+
+.autoCatHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #e8e9eb;
+}
+
+.autoCatSlots {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.autoCatSlotItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.autoCatSlotIcon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.autoCatSlotIdx {
+  color: var(--accent, #5e6ad2);
+  font-weight: 700;
+  font-size: 0.7rem;
+}
+
+.autoCatSlotName {
+  color: #f0f1f3;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.autoCatSlotAccount {
+  color: var(--text-tertiary, #888);
+  font-size: 0.68rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90px;
+}
+
+.autoCatEmpty {
+  font-size: 0.72rem;
+  color: var(--text-tertiary, #666);
+  font-style: italic;
+  padding: 4px 0;
+}
+
+// ─── Auto Wizard Info Banner ──────────────────────────────────────────────────
+.autoInfoBanner {
+  background: rgba(94, 106, 210, 0.07);
+  border: 1px solid rgba(94, 106, 210, 0.2);
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.autoInfoText {
+  font-size: 0.8rem;
+  color: #e8e9eb;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.autoExampleRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  font-size: 0.72rem;
+  color: var(--text-secondary, #8a8f98);
+}
+
+.autoExampleLabel {
+  font-weight: 600;
+  color: var(--accent, #5e6ad2);
+}
+
+.autoExampleChip {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  color: #f0f1f3;
+}
+
+// ─── Step 4 Grouped Categories Summary ────────────────────────────────────────
+.summaryCategorySection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 7px;
+  padding: 10px 12px;
+}
+
+.summaryCategoryTitle {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #f0f1f3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+// ─── Section Divider for Custom Combos ────────────────────────────────────────
+.customCombosSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.customCombosHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.customCombosTitleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.customCombosTitle {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #f7f8f8;
+}
+
+.customCombosDesc {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary, #8a8f98);
+}
+.slotRemoveBtn {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  color: var(--text-tertiary, #888);
+  font-size: 0.72rem;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.1s;
+
+  &:hover {
+    color: #f87171;
+    border-color: rgba(248, 113, 113, 0.3);
+    background: rgba(248, 113, 113, 0.08);
+  }
+}
+
+.autoStepHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.autoStepTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #f0f1f3;
+  margin: 0;
+}
+
+.selectedSlotsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 7px;
+  padding: 8px 10px;
+}
+
+.selectedSlotsHeader {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary, #8a8f98);
+}
+
+.mainTabBar {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 20px;
+}
+
+.mainTabButton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary, #8a8f98);
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  transition: all 0.15s ease;
+
+  &:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.03);
+  }
+}
+
+.mainTabActive {
+  color: #ffffff !important;
+  font-weight: 600;
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: 8px;
+    right: 8px;
+    height: 2px;
+    background: #5e6ad2;
+    box-shadow: 0 0 10px rgba(94, 106, 210, 0.7);
+  }
+}
+
+.engineCard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: #0f1013;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.engineHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.engineTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.engineTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  strong {
+    font-size: 15px;
+    font-weight: 600;
+    color: #ffffff;
+  }
+}
+
+.engineDesc {
+  font-size: 12px;
+  color: var(--text-secondary, #8a8f98);
+  line-height: 1.5;
+  max-width: 680px;
+}
+
+.engineStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  background: rgba(39, 195, 118, 0.1);
+  color: #27c376;
+  border: 1px solid rgba(39, 195, 118, 0.2);
+}
+
+.engineSlotsChain {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+}
+
+.engineSlotRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 5px;
+}

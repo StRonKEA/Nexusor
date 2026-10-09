@@ -1,0 +1,84 @@
+@use "../../styles/typography" as type;
+
+.mask {
+  position: fixed;
+  z-index: 13000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--window-header-height) 24px 24px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.dragLayer {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: var(--window-header-height);
+}
+
+.dialog {
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+  width: min(620px, calc(100vw - 48px));
+  max-height: calc(100vh - var(--window-header-height) - 24px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--vscode-foreground);
+  background: #131418;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  header {
+    flex: 0 0 auto;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    font-size: 14px;
+    font-weight: 600;
+    color: #f7f8f8;
+  }
+  footer {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+  }
+}
+
+.wide {
+  width: min(1080px, calc(100vw - 48px));
+}
+
+.compact {
+  width: min(560px, calc(100vw - 48px));
+}
+
+.fullHeight {
+  height: calc(100vh - var(--window-header-height) - 24px);
+}
+
+.banner {
+  flex: 0 0 auto;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--vscode-editorWidget-border);
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.bodyContent {
+  padding: 18px;
+}

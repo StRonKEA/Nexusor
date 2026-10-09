@@ -1,0 +1,61 @@
+syntax = "proto3";
+package nexusor.tab;
+import "cmdk.proto";
+
+message ConfigResponse {
+  optional int32 above_radius = 1;
+  bool enable_rvf_tracking = 10;
+  bool should_fetch_rvf_text = 22;
+}
+
+message Request {
+  CurrentFile current_file = 1;
+  repeated string diff_history = 2;
+  optional string model_name = 3;
+  repeated nexusor.cmdk.DiffHistory file_diff_histories = 7;
+  repeated nexusor.cmdk.DiffHistory merged_diff_histories = 8;
+  repeated ContextItem context_items = 13;
+  repeated nexusor.cmdk.LspContext lsp_contexts = 15;
+  optional string workspace_id = 18;
+  repeated AdditionalFile additional_files = 19;
+  optional bool supports_cpt = 27;
+  optional bool supports_crlf_cpt = 28;
+}
+message AdditionalFile {
+  string relative_workspace_path = 1;
+  bool is_open = 2;
+  repeated string visible_range_content = 3;
+  repeated int32 start_line_number_one_indexed = 5;
+}
+message CurrentFile {
+  string relative_workspace_path = 1;
+  string contents = 2;
+  Position cursor_position = 3;
+  string language_id = 5;
+  int32 total_number_of_lines = 8;
+  int32 contents_start_at_line = 9;
+  optional int32 file_version = 14;
+  bool rely_on_filesync = 18;
+  string workspace_root_path = 19;
+  optional string line_ending = 20;
+}
+message Position { int32 line = 1; int32 column = 2; }
+message ContextItem { string contents = 1; optional string symbol = 2; string relative_workspace_path = 3; float score = 4; }
+message Response {
+  string text = 1;
+  optional bool done_stream = 4;
+  Range range_to_replace = 11;
+  CursorPrediction cursor_prediction_target = 12;
+  optional bool done_edit = 13;
+  ModelInfo model_info = 14;
+  optional bool begin_edit = 15;
+  optional bool should_remove_leading_eol = 16;
+}
+message CursorPrediction {
+  string relative_path = 1;
+  int32 line_number_one_indexed = 2;
+  string expected_content = 3;
+  bool should_retrigger_cpp = 4;
+}
+message Range { int32 start_line_number = 1; int32 end_line_number_inclusive = 2; }
+message ModelInfo { bool is_fused_cursor_prediction_model = 1; bool is_multidiff_model = 2; }

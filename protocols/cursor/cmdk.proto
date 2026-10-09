@@ -1,0 +1,123 @@
+syntax = "proto3";
+package nexusor.cmdk;
+
+// Wire subset of aiserver_v1.proto used by Cursor 3.22.12 CmdKService.
+// Credentials are deliberately not decoded or included in model context.
+message ModelDetails { optional string model_name = 1; }
+message Options {
+  bool chat_mode = 1;
+  ModelDetails model_details = 3;
+  optional bool request_is_for_caching = 6;
+}
+message Request {
+  repeated CachedItem context_items = 1;
+  Options cmd_k_options = 2;
+  LegacyContext legacy_context = 5;
+  string session_id = 6;
+  PreviousEdit previous_edit = 7;
+  repeated PreviousEdit previous_edits = 8;
+  repeated Image images = 10;
+  repeated Link links = 11;
+  repeated UpcomingEdit upcoming_edits = 12;
+  repeated DiffHistory diff_history = 13;
+  BranchDiff diff_to_base_branch = 14;
+  repeated Rule rules = 16;
+}
+message CachedItem {
+  oneof item { ContextItem context_item = 1; string context_item_hash = 2; }
+}
+message ContextItem {
+  oneof item {
+    FileChunk file_chunk = 2;
+    Outline outline_chunk = 3;
+    Selection cmd_k_selection = 4;
+    ImmediateContext cmd_k_immediate_context = 5;
+    Query cmd_k_query = 6;
+    QueryHistory cmd_k_query_history = 7;
+    Instructions custom_instructions = 8;
+    Definition go_to_definition_result = 9;
+    Documentation documentation_chunk = 10;
+    Lints lints = 11;
+    ChatHistory chat_history = 12;
+    NotebookOutput notebook_cell_output = 13;
+    TerminalHistory terminal_history = 14;
+    Query terminal_cmd_k_query = 15;
+    TerminalQueryHistory terminal_cmd_k_query_history = 16;
+    ImmediateContext sparse_file_chunk = 17;
+    LspChunk lsp_subgraph_chunk = 18;
+    Instructions commit_note_chunk = 19;
+    FileDiffHistory file_diff_history = 20;
+    QueriesInSession cmd_k_query_history_in_diff_session = 21;
+    Rule project_rule = 22;
+  }
+}
+message FileChunk { string relative_workspace_path = 1; string chunk_contents = 2; int32 start_line_number = 3; }
+message Outline { string relative_workspace_path = 1; string contents = 2; LineRange full_range = 3; }
+message LineRange { int32 start_line_number = 1; int32 end_line_number = 2; }
+message LspChunk { LspContext lsp_subgraph_full_context = 1; }
+message LspContext { string uri = 1; string symbol_name = 2; repeated LspPosition positions = 3; repeated LspItem context_items = 4; float score = 5; }
+message LspPosition { int32 line = 1; int32 character = 2; }
+message LspRange { int32 start_line = 1; int32 start_character = 2; int32 end_line = 3; int32 end_character = 4; }
+message LspItem { optional string uri = 1; string type = 2; string content = 3; LspRange range = 4; }
+message Selection { repeated string lines = 1; int32 start_line_number = 2; }
+message Line { string line = 1; int32 line_number = 2; }
+message ImmediateContext {
+  string relative_workspace_path = 1;
+  repeated Line lines = 2;
+  int32 total_number_of_lines_in_file = 3;
+  optional int32 cell_number = 4;
+}
+message Query { string query = 1; }
+message QueryHistory {
+  Query query = 1;
+  ImmediateContext immediate_context = 2;
+  Selection selection = 3;
+  QueryHistory query_history = 4;
+  repeated string context_item_hashes = 5;
+}
+message Instructions { string instructions = 1; }
+message Definition {
+  string relative_workspace_path = 1;
+  string line = 2;
+  int32 line_number = 3;
+  int32 column_number = 4;
+  FileChunk definition_chunk = 5;
+}
+message Documentation { string doc_name = 1; string page_url = 2; string documentation_chunk = 3; float score = 4; }
+message Lints { string relative_workspace_path = 1; repeated Lint lints = 2; repeated Line context_lines = 3; }
+message Lint { string message = 1; }
+message ChatHistory { string user_message = 1; string assistant_response = 2; ChatHistory chat_history = 3; bool active_for_cmd_k = 4; }
+message NotebookOutput { string relative_workspace_path = 1; string cell_output = 2; int32 cell_number = 3; }
+message TerminalHistory { string history = 1; bool active_for_cmd_k = 4; string cwd_full = 5; string cwd_relative_workspace_path = 6; }
+message TerminalQueryHistory { Query query = 1; TerminalQueryHistory query_history = 2; repeated string context_item_hashes = 5; string suggested_command = 6; }
+message FileDiffHistory { DiffHistory cpp_file_diff_history = 1; int32 how_many_diffs_ago = 2; bool is_very_recent = 3; }
+message DiffHistory { string file_name = 1; repeated string diff_history = 2; repeated double diff_history_timestamps = 3; }
+message QueriesInSession { repeated PastQuery past_cmdk_queries = 1; double curr_timestamp_double = 3; }
+message PastQuery { Query query = 1; string relative_workspace_path = 2; optional bool cmdk_was_accepted = 5; double timestamp_double = 6; optional string request_id = 8; }
+message Rule { string name = 1; string description = 2; optional string body = 3; optional string full_path = 7; }
+message LegacyContext { ExplicitContext explicit_context = 4; repeated string documentation_identifiers = 10; repeated CodeBlock prompt_code_blocks = 12; }
+message ExplicitContext { string context = 1; optional string repo_context = 2; repeated Rule rules = 3; optional string mode_specific_context = 4; }
+message CodeBlock { string relative_workspace_path = 1; optional string file_contents = 2; string contents = 4; optional string override_contents = 6; optional string original_contents = 7; }
+message PreviousEdit { repeated string original_lines = 1; repeated string new_lines = 2; string relative_path = 3; repeated string extra_context_above = 4; repeated string extra_context_below = 5; }
+message UpcomingEdit { repeated string original_lines = 1; string relative_path = 3; }
+message Image { bytes data = 1; string uuid = 3; optional string task_specific_description = 4; }
+message Link { string url = 1; string uuid = 2; }
+message BranchDiff { repeated FileDiff file_diffs = 1; repeated Commit commits = 2; }
+message FileDiff { string file_name = 1; string diff = 2; bool too_big = 3; }
+message Commit { string sha = 1; string message = 2; }
+
+// Both edit and terminal responses use the same outer context wrapper.
+message Response {
+  oneof response { EditResponse real_response = 1; MissingItems missing_context_items = 3; }
+}
+message MissingItems { repeated string missing_context_item_hashes = 2; }
+message EditResponse {
+  oneof response { EditStart edit_start = 1; EditStream edit_stream = 2; EditEnd edit_end = 3; Chat chat = 4; }
+}
+message EditStart { int32 start_line_number = 1; int32 edit_id = 2; optional int32 max_end_line_number_exclusive = 3; optional string file_path = 4; }
+message EditStream { string text = 1; int32 edit_id = 2; optional string file_path = 3; }
+message EditEnd { int32 end_line_number_exclusive = 1; int32 edit_id = 2; optional string file_path = 3; }
+message Chat { string text = 1; }
+message TerminalResponse { TerminalResult real_response = 1; }
+message TerminalResult { oneof response { TerminalCommand terminal_command = 1; Chat chat = 4; } }
+message TerminalCommand { string partial_command = 1; }

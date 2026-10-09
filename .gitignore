@@ -1,0 +1,27 @@
+# Build artifacts
+/target/
+/apps/desktop/dist/
+/apps/desktop/node_modules/
+/apps/desktop/src-tauri/gen/
+/apps/desktop/src-tauri/target/
+
+# Python & cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local keys & state
+.tauri/
+/.nexusor/
+*.bak
+*.tmp
+*.log
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/

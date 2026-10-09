@@ -1,0 +1,289 @@
+@use "../../styles/typography" as type;
+
+.page {
+  display: grid;
+  gap: 16px;
+}
+
+.tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  width: fit-content;
+}
+
+.tab {
+  min-height: 28px;
+  padding: 0 12px;
+  color: #8a8f98;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.12s ease;
+  cursor: pointer;
+
+  &:hover {
+    color: #f7f8f8;
+    background: rgba(255, 255, 255, 0.04);
+  }
+}
+
+.tabActive {
+  min-height: 28px;
+  padding: 0 12px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  cursor: default;
+}
+
+.tabPanel {
+  display: grid;
+  gap: 16px;
+}
+
+.settingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px;
+
+  div {
+    display: grid;
+    gap: 5px;
+  }
+
+  small {
+    color: var(--vscode-descriptionForeground);
+    font-size: type.$font-size-xs;
+  }
+}
+
+.storageRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px;
+
+  > div {
+    display: grid;
+    gap: 5px;
+  }
+
+  small {
+    color: var(--vscode-descriptionForeground);
+    font-size: type.$font-size-xs;
+  }
+}
+
+.textButton {
+  padding: 4px;
+  color: var(--vscode-textLink-foreground);
+  background: transparent;
+  border: 0;
+
+  &:hover { color: var(--vscode-textLink-activeForeground); }
+}
+
+.importRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px;
+
+  > div {
+    display: grid;
+    gap: 5px;
+  }
+
+  small {
+    color: var(--vscode-descriptionForeground);
+    font-size: type.$font-size-xs;
+  }
+}
+
+.backupCard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+}
+
+.backupHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  strong {
+    font-size: 14px;
+    color: var(--vscode-foreground);
+    font-weight: 500;
+  }
+
+  small {
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
+    line-height: 1.5;
+  }
+}
+
+.scopePills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.scopePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.backupActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.backupNote {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.confirmContent {
+  display: grid;
+  gap: 8px;
+
+
+  small {
+    color: var(--vscode-descriptionForeground);
+    font-size: type.$font-size-xs;
+  }
+}
+
+.themeActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px;
+
+  button {
+    min-height: 30px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 11px;
+    color: var(--vscode-foreground);
+    background: var(--vscode-input-background);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 5px;
+  }
+}
+
+.languageControl {
+  width: 180px;
+  flex: 0 0 auto;
+}
+
+.portSettings {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.portFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.portFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  small {
+    color: var(--vscode-descriptionForeground);
+    font-size: type.$font-size-xs;
+  }
+}
+
+.portValue {
+  min-width: 0;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  strong {
+    flex: 0 0 auto;
+    min-width: 7.5em;
+  }
+
+  span {
+    color: var(--vscode-descriptionForeground);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 960px) {
+  .portFields {
+    grid-template-columns: 1fr;
+  }
+
+  .settingRow,
+  .storageRow,
+  .importRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .languageControl {
+    width: 100%;
+  }
+}
+
+@media (max-width: 680px) {
+  .portFields {
+    grid-template-columns: 1fr;
+  }
+
+  .importRow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+}
+
+.themeActions .selected {
+  border-color: var(--vscode-focusBorder);
+}

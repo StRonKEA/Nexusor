@@ -1,0 +1,47 @@
+.chartContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.kpiStrip {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.kpiPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 11px;
+}
+
+.kpiLabel {
+  color: #8a8f98;
+  font-weight: 500;
+}
+
+.kpiValue {
+  color: #ffffff;
+  font-weight: 600;
+  font-family: monospace;
+}
+
+.kpiAccent {
+  color: #7075f5;
+  font-weight: 600;
+  font-family: monospace;
+}
+
+.chart {
+  width: 100%;
+  height: 180px;
+}

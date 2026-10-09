@@ -1,0 +1,11 @@
+# Automatically generated permission for set_headless_service
+
+[[permission]]
+identifier = "allow-set-headless-service"
+description = "Enables the set_headless_service command"
+commands.allow = ["set_headless_service"]
+
+[[permission]]
+identifier = "deny-set-headless-service"
+description = "Denies the set_headless_service command"
+commands.deny = ["set_headless_service"]

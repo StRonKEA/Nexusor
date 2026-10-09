@@ -1,0 +1,614 @@
+@use "../../styles/typography" as type;
+
+.page {
+  display: grid;
+  gap: 16px;
+}
+
+.takeoverActions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.takeoverStatus {
+  min-width: 39px;
+  color: var(--vscode-descriptionForeground);
+  font-size: type.$font-size-xs;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.groupActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+
+  button {
+    height: 24px;
+    padding: 0 9px;
+    color: #8a8f98;
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: all 0.12s ease;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      color: #f7f8f8;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    &[aria-pressed="true"] {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.gateActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gate {
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  color: var(--vscode-descriptionForeground);
+  text-align: center;
+  border: 1px dashed var(--vscode-sideBar-border);
+  border-radius: var(--oa-overlay-radius);
+  strong {
+    color: var(--vscode-foreground);
+    font-size: type.$font-size-base;
+  }
+  span {
+    max-width: 440px;
+    font-size: type.$font-size-xs;
+  }
+  button {
+    margin-top: 6px;
+  }
+}
+
+.modelGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 12px;
+}
+.modelGroups {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-top: 10px;
+}
+.sectionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sectionHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f7f8f8;
+  margin: 0 0 4px;
+}
+
+.sectionSubtitle {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground, #8a8f98);
+  margin: 0;
+}
+
+.quotaBadgesContainer {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 4px 8px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-right: 6px;
+
+  &[data-single="true"] {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+
+.quotaItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.quotaLabel {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #8a8f98;
+  white-space: nowrap;
+}
+
+.quotaTrack {
+  width: 34px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.quotaFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.quotaValue {
+  font-size: 10.5px;
+  font-weight: 600;
+  font-family: monospace;
+  color: #e0e0e0;
+}
+
+.groupCard {
+  padding: 4px 12px 8px;
+}
+.groupHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+.groupSettings {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 2px;
+  color: var(--vscode-descriptionForeground);
+  background: none;
+  border: none;
+  font-size: type.$font-size-xs;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover { color: var(--vscode-foreground); }
+}
+.groupChevron {
+  display: flex;
+  align-items: center;
+  padding: 4px 0;
+  color: var(--vscode-foreground);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.groupToggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 2px;
+  color: var(--vscode-foreground);
+  background: none;
+  border: none;
+  font-size: type.$font-size-base;
+  cursor: pointer;
+}
+.groupLabel {
+  flex: 1;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.modelList {
+  display: flex;
+  flex-direction: column;
+}
+.modelRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  padding: 10px 2px;
+  border-top: 1px solid var(--vscode-sideBar-border);
+}
+.modelRowName {
+  min-width: 0;
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  .modelRowNameText,
+  .modelRowModelId {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .modelRowNameText {
+    color: var(--vscode-foreground);
+    font-size: type.$font-size-base;
+  }
+  .modelRowModelId {
+    color: var(--vscode-descriptionForeground);
+    font-size: type.$font-size-2xs;
+  }
+}
+.modelCard {
+  position: relative;
+  padding: 16px;
+}
+.modelCardContent {
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+}
+.modelCardTop {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.modelCardName {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .modelCardNameText,
+  .modelCardModelId {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .modelCardNameText {
+    color: var(--vscode-foreground);
+    font-size: type.$font-size-base;
+  }
+  .modelCardModelId {
+    color: var(--vscode-descriptionForeground);
+    font-size: type.$font-size-2xs;
+  }
+}
+.modelTypeBadge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  color: var(--vscode-descriptionForeground);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.modelCardTest {
+  min-height: 31px;
+  display: flex;
+  align-items: center;
+}
+.modelCardActions {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 8px;
+
+  // 空间不足时按钮收缩显示省略号,而不是换行。
+  > button {
+    min-width: 0;
+    flex: 0 1 auto;
+  }
+}
+.deleteButton:hover {
+  color: var(--vscode-errorForeground, #f48771);
+}
+.sortHandle {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: transparent;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  opacity: 0;
+  cursor: grab;
+  touch-action: none;
+  transition: opacity 160ms ease, color 160ms ease, border-color 160ms ease, background-color 160ms ease;
+
+  &:focus-visible,
+  .modelCard:hover & {
+    color: var(--vscode-foreground);
+    background: var(--vscode-list-hoverBackground);
+    border-color: var(--vscode-sideBar-border);
+    opacity: 1;
+  }
+  &:active {
+    cursor: grabbing;
+  }
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.3;
+  }
+}
+.sortGhost {
+  opacity: 0.4;
+}
+.sortChosen {
+  border-color: var(--vscode-focusBorder);
+}
+.sortDragging {
+  cursor: grabbing;
+}
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.protocolTabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.protocolTab {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--vscode-descriptionForeground);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.12s ease-in-out;
+
+  &:hover {
+    color: #f7f8f8;
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+
+.protocolTabActive {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  cursor: default;
+}
+
+.discoveredBox {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  margin-top: 6px;
+}
+
+.discoveredHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--vscode-descriptionForeground);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.discoveredActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filterInput {
+  height: 28px;
+  min-width: 160px;
+  padding: 0 10px;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+  color: var(--vscode-foreground);
+  outline: none;
+
+  &:focus {
+    border-color: var(--vscode-focusBorder);
+  }
+}
+
+.discoveredChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.modelSelectChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  font-size: 12px;
+  font-family: var(--oa-code-font);
+  color: var(--vscode-descriptionForeground);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+
+  &:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+  }
+}
+
+.modelSelectChipActive {
+  color: #ffffff;
+  background: rgba(94, 106, 210, 0.2);
+  border-color: rgba(94, 106, 210, 0.6);
+  box-shadow: 0 0 8px rgba(94, 106, 210, 0.3);
+}
+
+.batchInfo {
+  font-size: 12px;
+  color: #27c376;
+  background: rgba(39, 195, 118, 0.1);
+  border: 1px solid rgba(39, 195, 118, 0.25);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-top: 4px;
+}
+.command {
+  margin: 0;
+  padding: 10px;
+  overflow: auto;
+  color: var(--vscode-textLink-foreground);
+  background: var(--vscode-textCodeBlock-background);
+  border-radius: 4px;
+  white-space: pre-wrap;
+  user-select: text;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.fullWidth {
+  width: 100%;
+  grid-column: 1 / -1;
+}
+.discoverButton {
+  min-height: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+}
+.urlField {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.switches {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  label {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    color: var(--vscode-descriptionForeground);
+    font-size: type.$font-size-xs;
+  }
+}
+
+.jsonOption {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  > label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    color: var(--vscode-descriptionForeground);
+    font-size: type.$font-size-xs;
+  }
+}
+
+.advanced {
+  margin-top: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--vscode-sideBar-border);
+  border-radius: 6px;
+
+  summary {
+    cursor: pointer;
+    color: var(--vscode-foreground);
+    font-size: type.$font-size-base;
+    font-weight: 600;
+  }
+}
+
+.advancedBody {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+@media (max-width: 720px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .fullWidth {
+    grid-column: auto;
+  }
+  .advancedBody {
+    grid-template-columns: 1fr;
+  }
+}

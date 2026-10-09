@@ -1,0 +1,33 @@
+[workspace]
+members = [
+    "server",
+    "apps/desktop/src-tauri",
+    "crates/semble-core",
+]
+resolver = "2"
+
+# Keep local Rust builds compact. Full dependency debug info and incremental
+# object caches dominate target/ in this workspace, while line tables for our
+# own crates are enough for normal backtraces and source-level debugging.
+[profile.dev]
+debug = 0                 # disable heavy .pdb debug symbols to keep target/ small
+incremental = false
+
+[profile.dev.package."*"]
+debug = 0
+
+[profile.test]
+debug = 0                 # disable debug symbols in test binaries
+incremental = false
+
+[profile.test.package."*"]
+debug = 0
+
+# Balanced size & fast link time for production builds
+[profile.release]
+opt-level = "s"           # optimize for binary size without sacrificing performance
+lto = "thin"              # fast Link-Time Optimization
+codegen-units = 1         # dead code elimination across crates
+panic = "abort"           # remove heavy stack unwinding tables
+strip = true              # strip all debug symbols and names from the binary
+

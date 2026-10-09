@@ -1,0 +1,11 @@
+# Automatically generated permission for is_headless_service_installed
+
+[[permission]]
+identifier = "allow-is-headless-service-installed"
+description = "Enables the is_headless_service_installed command"
+commands.allow = ["is_headless_service_installed"]
+
+[[permission]]
+identifier = "deny-is-headless-service-installed"
+description = "Denies the is_headless_service_installed command"
+commands.deny = ["is_headless_service_installed"]

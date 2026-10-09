@@ -1,0 +1,66 @@
+.root {
+  --oa-scrollbar-size: 8px;
+  --oa-scrollbar-min-thumb-size: 20px;
+  --oa-scrollbar-inset-top: 0px;
+  --oa-scrollbar-thumb: var(--vscode-scrollbarSlider-background, rgba(255, 255, 255, 0.2));
+  --oa-scrollbar-thumb-hover: var(--vscode-scrollbarSlider-hoverBackground, rgba(255, 255, 255, 0.35));
+  --oa-scrollbar-thumb-active: var(--vscode-scrollbarSlider-activeBackground, rgba(255, 255, 255, 0.45));
+  --oa-scrollbar-hit-size: max(12px, var(--oa-scrollbar-size));
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+
+  &.always .scrollbar,
+  &.active .scrollbar,
+  &:hover .scrollbar {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  &.active .thumb {
+    background: var(--oa-scrollbar-thumb-active);
+  }
+}
+
+.viewport {
+  width: 100%;
+  height: calc(100% - var(--window-safe-top, 30px));
+  margin-top: var(--window-safe-top, 30px);
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.24);
+  }
+}
+
+.content {
+  min-width: 0;
+}
+
+.scrollbar {
+  display: none;
+}
+
+.hidden {
+  display: none;
+}

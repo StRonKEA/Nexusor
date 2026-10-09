@@ -1,0 +1,49 @@
+@use "../../styles/typography" as type;
+
+.root {
+  min-width: 0;
+}
+
+.list {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tab {
+  position: relative;
+  min-height: 32px;
+  padding: 0 12px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 13px;
+  font-weight: 500;
+  background: transparent;
+  border: 0;
+  border-radius: 4px 4px 0 0;
+  transition: all 0.12s ease-in-out;
+
+  &:hover {
+    color: #f7f8f8;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  &[aria-selected="true"] {
+    color: #ffffff;
+
+    &::after {
+      position: absolute;
+      right: 4px;
+      bottom: -1px;
+      left: 4px;
+      height: 2px;
+      content: "";
+      background: #5e6ad2;
+      box-shadow: 0 0 10px rgba(94, 106, 210, 0.7);
+    }
+  }
+}
+
+.panel {
+  min-width: 0;
+  padding-top: 16px;
+}

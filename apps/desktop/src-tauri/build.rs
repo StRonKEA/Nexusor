@@ -1,0 +1,11 @@
+fn main() {
+    println!("cargo:rerun-if-changed=icons/icon.ico");
+    println!("cargo:rerun-if-changed=tauri.conf.json");
+    let manifest = tauri_build::AppManifest::new().commands(&[
+        "open_terminal_with_command",
+        "check_portable_update",
+        "install_portable_update",
+    ]);
+    tauri_build::try_build(tauri_build::Attributes::new().app_manifest(manifest))
+        .expect("failed to build Tauri application")
+}

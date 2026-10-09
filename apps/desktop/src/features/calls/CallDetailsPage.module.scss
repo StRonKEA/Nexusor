@@ -1,0 +1,15 @@
+@use "../../styles/typography" as type;
+
+.panel {
+  padding: 16px;
+}
+
+.backLink {
+  color: var(--vscode-textLink-foreground);
+  font-size: type.$font-size-xs;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--vscode-textLink-activeForeground);
+  }
+}

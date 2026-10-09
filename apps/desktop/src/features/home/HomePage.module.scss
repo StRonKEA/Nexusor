@@ -1,0 +1,568 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 0 24px;
+}
+
+.heroGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.coolingAlertContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.coolingAlertBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(245, 158, 11, 0.05);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 6px;
+  padding: 9px 14px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.35);
+  }
+}
+
+.coolingAlertIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f59e0b;
+  font-size: 15px;
+  flex: 0 0 auto;
+}
+
+.coolingAlertText {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #fbbf24;
+  line-height: 1.4;
+}
+
+.heroCard {
+  background: #17181c;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 116px;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+}
+
+.heroCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.heroCardTitle {
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #8a8f98;
+}
+
+.heroValue {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+  margin: 6px 0 4px;
+}
+
+.heroSplitRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #8a8f98;
+  margin-top: 2px;
+}
+
+.heroSplitBadge {
+  font-family: monospace;
+  color: #d1d5db;
+  font-weight: 600;
+}
+
+.cacheMeterRow {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 8px 0 6px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.cacheMeterBar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.cacheMeterFill {
+  height: 100%;
+  background: linear-gradient(90deg, #5e6ad2 0%, #38bdf8 100%);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.cacheMeterMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #8a8f98;
+}
+
+.cacheMeterAccent {
+  color: #a5b4fc;
+  font-weight: 600;
+}
+
+.heroEquation {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 6px 0 4px;
+  flex-wrap: wrap;
+}
+
+.heroEqItem {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.heroEqNum {
+  font-size: 21px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.heroEqNumAccent {
+  font-size: 23px;
+  font-weight: 700;
+  color: #a5b4fc;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.heroEqLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8a8f98;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.heroEqLabelAccent {
+  font-size: 11px;
+  font-weight: 600;
+  color: #818cf8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.heroEqOp {
+  font-size: 15px;
+  font-weight: 600;
+  color: #555866;
+  user-select: none;
+}
+
+.heroMeta {
+  font-size: 12px;
+  color: #8a8f98;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.statusBadgeOk {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(39, 195, 118, 0.12);
+  color: #27c376;
+  border: 1px solid rgba(39, 195, 118, 0.25);
+}
+
+.statusBadgeWarn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(242, 153, 74, 0.12);
+  color: #f2994a;
+  border: 1px solid rgba(242, 153, 74, 0.25);
+}
+
+.statusBadgeOff {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #8a8f98;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pageTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.liveTrafficBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  text-decoration: none;
+  background: rgba(49, 134, 255, 0.08);
+  border: 1px solid rgba(49, 134, 255, 0.22);
+  color: #38bdf8;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: rgba(49, 134, 255, 0.14);
+    border-color: rgba(49, 134, 255, 0.35);
+  }
+}
+
+.liveTrafficDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.titleCursorBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  text-decoration: none;
+  background: rgba(39, 195, 118, 0.1);
+  color: #27c376;
+  border: 1px solid rgba(39, 195, 118, 0.25);
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: rgba(39, 195, 118, 0.18);
+    border-color: rgba(39, 195, 118, 0.4);
+  }
+
+  &[data-taken="false"] {
+    background: rgba(255, 255, 255, 0.05);
+    color: #8a8f98;
+    border-color: rgba(255, 255, 255, 0.1);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+  }
+}
+
+.titleCursorDotOk {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #27c376;
+  box-shadow: 0 0 6px rgba(39, 195, 118, 0.6);
+}
+
+.titleCursorDotOff {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #8a8f98;
+}
+
+.titleCursorSub {
+  font-family: monospace;
+  opacity: 0.8;
+  font-size: 11px;
+}
+
+.titleCheckIcon {
+  margin-left: 2px;
+}
+
+.heroGrid3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.heroCardKpi {
+  background: #17181c;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 136px;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+}
+
+.heroCardKpiLink {
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.metaItemReady {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #27c376;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(39, 195, 118, 0.12);
+  border: 1px solid rgba(39, 195, 118, 0.25);
+}
+
+.metaItemWarn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #f59e0b;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.metaItemDisabled {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #8a8f98;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.sectionTitle {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #f7f8f8;
+  margin: 0;
+}
+
+.poolSummaryHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.poolTotalBadge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(94, 106, 210, 0.12);
+  color: #7075f5;
+  border: 1px solid rgba(94, 106, 210, 0.25);
+}
+
+.providersStrip {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.providerSummaryCard {
+  background: #17181c;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  transition: border-color 0.15s ease;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+}
+
+.providerLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.providerLogo {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.providerName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.providerAccountsBadge {
+  font-size: 11px;
+  color: #8a8f98;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.providerRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.quotaBadgesContainer {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 6px 10px;
+  align-items: center;
+  justify-content: flex-end;
+
+  &[data-single="true"] {
+    grid-template-columns: auto;
+  }
+}
+
+.quotaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.quotaLabel {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #8a8f98;
+  white-space: nowrap;
+}
+
+.quotaTrack {
+  width: 34px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.quotaFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.quotaValue {
+  font-size: 10.5px;
+  font-weight: 600;
+  font-family: monospace;
+  color: #e0e0e0;
+}
+
+.chartCard {
+  background: #17181c;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 16px 18px;
+}
+
+@media (max-width: 960px) {
+  .heroGrid {
+    grid-template-columns: 1fr;
+  }
+  .heroGrid3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1200px) and (min-width: 961px) {
+  .heroGrid3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+}

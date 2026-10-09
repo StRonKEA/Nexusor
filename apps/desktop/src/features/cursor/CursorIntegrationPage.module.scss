@@ -1,0 +1,150 @@
+@use "../../styles/typography" as type;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 10px;
+}
+
+.statusCard,
+.countsCard {
+  padding: 16px 18px;
+}
+
+.warningCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 14px 18px;
+  border-left: 3px solid var(--vscode-editorWarning-foreground, #cca700);
+  background: var(--vscode-inputValidation-warningBackground, rgba(204, 167, 0, 0.1));
+
+  strong {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--vscode-foreground, #f7f8f8);
+  }
+
+  span {
+    color: var(--vscode-descriptionForeground, #8a8f98);
+    font-size: type.$font-size-xs;
+    line-height: 1.4;
+  }
+}
+
+.statusGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+.statusItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  small {
+    color: var(--vscode-descriptionForeground);
+    font-size: type.$font-size-2xs;
+  }
+
+  strong {
+    font-size: type.$font-size-base;
+    font-weight: 600;
+
+    &[data-ok] {
+      color: var(--vscode-testing-iconPassed, #73c991);
+    }
+  }
+}
+
+.countsCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  > div:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    span {
+      color: var(--vscode-descriptionForeground);
+      font-size: type.$font-size-xs;
+    }
+  }
+}
+
+.countActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 960px) {
+  .statusGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .countsCard {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.sectionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f7f8f8;
+  margin: 0;
+}
+
+.configCard {
+  padding: 4px 16px;
+}
+
+.settingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 0;
+
+  & + & {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    strong {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--vscode-foreground, #f7f8f8);
+    }
+
+    small {
+      color: var(--vscode-descriptionForeground, #8a8f98);
+      font-size: type.$font-size-xs;
+      line-height: 1.4;
+    }
+  }
+}
