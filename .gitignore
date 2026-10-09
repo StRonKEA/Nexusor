@@ -4,6 +4,7 @@
 /apps/desktop/node_modules/
 /apps/desktop/src-tauri/gen/
 /apps/desktop/src-tauri/target/
+*.tsbuildinfo
 
 # Python & cache
 __pycache__/
