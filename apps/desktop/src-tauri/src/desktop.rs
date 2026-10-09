@@ -64,7 +64,7 @@ fn is_headless_service_installed() -> bool {
 }
 
 #[tauri::command]
-fn set_headless_service(enabled: bool) -> Result<(), String> {
+fn set_headless_service(app: AppHandle, enabled: bool) -> Result<(), String> {
     #[cfg(windows)]
     {
         use winreg::enums::{HKEY_CURRENT_USER, KEY_SET_VALUE};
@@ -85,13 +85,21 @@ fn set_headless_service(enabled: bool) -> Result<(), String> {
             run_key
                 .set_value("NexusorHeadlessService", &target_cmd)
                 .map_err(|e| format!("failed to register startup key: {e}"))?;
+
+            // Aktif çalışan UI penceresi varsa hemen gizle (anında sessiz arka plan servisine dönüş)
+            if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
+                let _ = window.close();
+            }
         } else {
             let _ = run_key.delete_value("NexusorHeadlessService");
         }
         return Ok(());
     }
     #[cfg(not(windows))]
-    Ok(())
+    {
+        let _ = app;
+        Ok(())
+    }
 }
 
 #[derive(serde::Deserialize)]
