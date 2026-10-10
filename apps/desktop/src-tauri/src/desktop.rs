@@ -77,8 +77,9 @@ fn set_headless_service(app: AppHandle, enabled: bool) -> Result<(), String> {
         if enabled {
             let exe = std::env::current_exe().map_err(|e| e.to_string())?;
             let dir = exe.parent().ok_or_else(|| "cannot find exe parent directory".to_string())?;
-            let target_cmd = if dir.join("cursor-server.exe").exists() {
-                format!("\"{}\"", dir.join("cursor-server.exe").to_string_lossy())
+            let server_exe = dir.join("cursor-server.exe");
+            let target_cmd = if server_exe.exists() {
+                format!("\"{}\"", server_exe.to_string_lossy())
             } else {
                 format!("\"{}\" --silent", exe.to_string_lossy())
             };
@@ -86,24 +87,34 @@ fn set_headless_service(app: AppHandle, enabled: bool) -> Result<(), String> {
                 .set_value("NexusorHeadlessService", &target_cmd)
                 .map_err(|e| format!("failed to register startup key: {e}"))?;
 
-            // Tray simgesini kaldır ve aktif çalışan UI penceresini kapat (tamamen görünmez arka plan servisine dönüş)
-            if let Some(tray) = app.tray_by_id("main") {
-                let _ = tray.set_visible(false);
+            // Eğer cursor-server.exe mevcutsa, UI sürecini sonlandırıp arka planda bağımsız daemon olarak başlat
+            if server_exe.exists() {
+                use std::os::windows::process::CommandExt;
+                const CREATE_NO_WINDOW: u32 = 0x08000000;
+                let _ = Command::new(&server_exe)
+                    .creation_flags(CREATE_NO_WINDOW)
+                    .spawn();
+                app.exit(0);
+                return Ok(());
             }
+
+            // Gömülü moddaysa sadece pencereyi kapat
             if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
                 let _ = window.close();
             }
         } else {
             let _ = run_key.delete_value("NexusorHeadlessService");
-            if let Some(tray) = app.tray_by_id("main") {
-                let _ = tray.set_visible(true);
-            }
+            // Eğer harici cursor-server süreci çalışıyorsa onu sonlandır
+            let _ = Command::new("taskkill")
+                .args(["/F", "/IM", "cursor-server.exe"])
+                .output();
         }
         return Ok(());
     }
     #[cfg(not(windows))]
     {
         let _ = app;
+        let _ = enabled;
         Ok(())
     }
 }
@@ -283,6 +294,14 @@ pub fn run() -> ExitCode {
                 embedded_frontend = serve_embedded_frontend,
                 "desktop frontend source"
             );
+            // Eğer arka planda bağımsız cursor-server çalışıyorsa onu durdurup kontrolü desktop alacak
+            #[cfg(windows)]
+            {
+                let _ = Command::new("taskkill")
+                    .args(["/F", "/IM", "cursor-server.exe"])
+                    .output();
+            }
+
             let server = tauri::async_runtime::block_on(App::new(config))?
                 .merge_router(desktop_api_router(app.handle().clone()));
             #[cfg(not(dev))]

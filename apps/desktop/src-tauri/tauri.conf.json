@@ -21,7 +21,9 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
-    "resources": {},
+    "resources": {
+      "../../../target/release/cursor-server.exe": "cursor-server.exe"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

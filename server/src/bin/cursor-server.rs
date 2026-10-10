@@ -12,5 +12,13 @@ async fn main() -> Result<()> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    App::new(Config::from_env()?).await?.serve().await
+    let mut config = Config::desktop()?;
+    if let Ok(env_config) = Config::from_env() {
+        if std::env::var("CURSOR_LISTEN_ADDR").is_ok() {
+            config.listen_addr = env_config.listen_addr;
+            config.use_persisted_ports = false;
+        }
+    }
+
+    App::new(config).await?.serve().await
 }
