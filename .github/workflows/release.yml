@@ -37,9 +37,8 @@ jobs:
           cd apps/desktop
           npm ci
 
-      - name: Build Standalone Server & Tauri Desktop Installer
+      - name: Build Tauri Desktop & NSIS Installer
         run: |
-          cargo build --release -p cursor-server
           cd apps/desktop
           npx tauri build
 

@@ -76,38 +76,24 @@ fn set_headless_service(app: AppHandle, enabled: bool) -> Result<(), String> {
 
         if enabled {
             let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-            let dir = exe.parent().ok_or_else(|| "cannot find exe parent directory".to_string())?;
-            let server_exe = dir.join("cursor-server.exe");
-            let target_cmd = if server_exe.exists() {
-                format!("\"{}\"", server_exe.to_string_lossy())
-            } else {
-                format!("\"{}\" --silent", exe.to_string_lossy())
-            };
+            let target_cmd = format!("\"{}\" --silent", exe.to_string_lossy());
             run_key
                 .set_value("NexusorHeadlessService", &target_cmd)
                 .map_err(|e| format!("failed to register startup key: {e}"))?;
 
-            // Eğer cursor-server.exe mevcutsa, UI sürecini sonlandırıp arka planda bağımsız daemon olarak başlat
-            if server_exe.exists() {
-                use std::os::windows::process::CommandExt;
-                const CREATE_NO_WINDOW: u32 = 0x08000000;
-                let _ = Command::new(&server_exe)
-                    .creation_flags(CREATE_NO_WINDOW)
-                    .spawn();
-                app.exit(0);
-                return Ok(());
+            // Tek bir exe olarak çalışır: Tray simgesini gizle ve UI penceresini gizle.
+            // Arka plandaki HTTP proxy sunucusu tek exe içinde kesintisiz çalışmaya devam eder.
+            if let Some(tray) = app.tray_by_id("main") {
+                let _ = tray.set_visible(false);
             }
-
-            // Gömülü moddaysa sadece pencereyi kapat
             if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
-                let _ = window.close();
+                let _ = window.hide();
             }
         } else {
             let _ = run_key.delete_value("NexusorHeadlessService");
-            // Eğer harici cursor-server süreci çalışıyorsa onu sonlandır
-            let _ = Command::new("taskkill")
-                .args(["/F", "/IM", "cursor-server.exe"])
-                .output();
+            if let Some(tray) = app.tray_by_id("main") {
+                let _ = tray.set_visible(true);
+            }
         }
         return Ok(());
     }
@@ -210,17 +196,33 @@ fn create_main_window(
 
 /// 按需打开主窗口:webview 仅在需要界面时创建,关闭窗口即销毁释放内存。
 pub(crate) fn open_main_window(app: &AppHandle) -> tauri::Result<()> {
+    tracing::info!("open_main_window invoked");
     if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
+        tracing::info!("open_main_window found existing window; showing and focusing");
         let _ = window.unminimize();
         let _ = window.show();
         let _ = window.set_focus();
         return Ok(());
     }
-    let address = app.state::<DesktopRuntime>().server_addr;
-    let window = create_main_window(app, address)?;
-    window.show()?;
-    window.set_focus()?;
-    Ok(())
+    let address = match app.try_state::<DesktopRuntime>() {
+        Some(runtime) => runtime.server_addr,
+        None => {
+            tracing::error!("DesktopRuntime state missing in open_main_window");
+            return Ok(());
+        }
+    };
+    match create_main_window(app, address) {
+        Ok(window) => {
+            let _ = window.show();
+            let _ = window.set_focus();
+            tracing::info!("open_main_window successfully created and showed webview window");
+            Ok(())
+        }
+        Err(err) => {
+            tracing::error!(%err, "open_main_window failed to create window");
+            Err(err)
+        }
+    }
 }
 
 pub fn run() -> ExitCode {
@@ -248,8 +250,15 @@ pub fn run() -> ExitCode {
             set_headless_service
         ])
         .plugin(tauri_plugin_single_instance::init(|app, args, _| {
-            if !args.iter().any(|arg| arg == AUTOSTART_ARG) {
-                let _ = open_main_window(app);
+            let started_silent = args.iter().any(|arg| arg == AUTOSTART_ARG || arg == "--silent" || arg == "-s");
+            if !started_silent {
+                let app_handle = app.clone();
+                let _ = app.run_on_main_thread(move || {
+                    let _ = open_main_window(&app_handle);
+                    if let Some(tray) = app_handle.tray_by_id("main") {
+                        let _ = tray.set_visible(true);
+                    }
+                });
             }
         }))
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -294,14 +303,6 @@ pub fn run() -> ExitCode {
                 embedded_frontend = serve_embedded_frontend,
                 "desktop frontend source"
             );
-            // Eğer arka planda bağımsız cursor-server çalışıyorsa onu durdurup kontrolü desktop alacak
-            #[cfg(windows)]
-            {
-                let _ = Command::new("taskkill")
-                    .args(["/F", "/IM", "cursor-server.exe"])
-                    .output();
-            }
-
             let server = tauri::async_runtime::block_on(App::new(config))?
                 .merge_router(desktop_api_router(app.handle().clone()));
             #[cfg(not(dev))]
@@ -340,13 +341,19 @@ pub fn run() -> ExitCode {
             });
             let started_silent = started_by_autostart
                 || std::env::args().any(|arg| arg == "--silent" || arg == "-s");
+            // Her durumda pencereyi hazır oluştur (arka planda gizli dursun), böylece tekrar tıklandığında anında ekrana gelir
+            open_main_window(app.handle())?;
             if (desktop_settings.silent_start && started_by_autostart) || started_silent {
-                tracing::info!("silent start requested; starting without the main window");
-            } else {
-                open_main_window(app.handle())?;
+                tracing::info!("silent start requested; hiding the main window");
+                if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
+                    let _ = window.hide();
+                }
             }
-            if !started_silent {
-                tray::create(app)?;
+            tray::create(app)?;
+            if started_silent {
+                if let Some(tray) = app.tray_by_id("main") {
+                    let _ = tray.set_visible(false);
+                }
             }
             Ok(())
         })
