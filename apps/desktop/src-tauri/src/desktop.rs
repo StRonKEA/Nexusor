@@ -57,14 +57,15 @@ fn is_headless_service_installed() -> bool {
         use winreg::RegKey;
         let hkcu = RegKey::predef(HKEY_CURRENT_USER);
         if let Ok(run_key) = hkcu.open_subkey_with_flags(r"Software\Microsoft\Windows\CurrentVersion\Run", KEY_READ) {
-            return run_key.get_value::<String, _>("NexusorHeadlessService").is_ok();
+            return run_key.get_value::<String, _>("Nexusor").is_ok()
+                || run_key.get_value::<String, _>("NexusorHeadlessService").is_ok();
         }
     }
     false
 }
 
 #[tauri::command]
-fn set_headless_service(app: AppHandle, enabled: bool) -> Result<(), String> {
+fn set_headless_service(_app: AppHandle, enabled: bool) -> Result<(), String> {
     #[cfg(windows)]
     {
         use winreg::enums::{HKEY_CURRENT_USER, KEY_SET_VALUE};
@@ -78,22 +79,13 @@ fn set_headless_service(app: AppHandle, enabled: bool) -> Result<(), String> {
             let exe = std::env::current_exe().map_err(|e| e.to_string())?;
             let target_cmd = format!("\"{}\" --silent", exe.to_string_lossy());
             run_key
-                .set_value("NexusorHeadlessService", &target_cmd)
+                .set_value("Nexusor", &target_cmd)
                 .map_err(|e| format!("failed to register startup key: {e}"))?;
-
-            // Tek bir exe olarak çalışır: Tray simgesini gizle ve UI penceresini gizle.
-            // Arka plandaki HTTP proxy sunucusu tek exe içinde kesintisiz çalışmaya devam eder.
-            if let Some(tray) = app.tray_by_id("main") {
-                let _ = tray.set_visible(false);
-            }
-            if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
-                let _ = window.hide();
-            }
-        } else {
+            // Eski anahtar varsa temizle
             let _ = run_key.delete_value("NexusorHeadlessService");
-            if let Some(tray) = app.tray_by_id("main") {
-                let _ = tray.set_visible(true);
-            }
+        } else {
+            let _ = run_key.delete_value("Nexusor");
+            let _ = run_key.delete_value("NexusorHeadlessService");
         }
         return Ok(());
     }
