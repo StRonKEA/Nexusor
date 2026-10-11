@@ -5,6 +5,164 @@
   padding: 4px 0 24px;
 }
 
+// ─── Master Traffic-Light Status Card ────────────────────────────────────────
+.masterStatusCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #17181c;
+  transition: all 0.2s ease;
+
+  &[data-state="ok"] {
+    background: rgba(39, 195, 118, 0.04);
+    border-color: rgba(39, 195, 118, 0.25);
+  }
+
+  &[data-state="warn"] {
+    background: rgba(245, 158, 11, 0.04);
+    border-color: rgba(245, 158, 11, 0.25);
+  }
+
+  &[data-state="error"] {
+    background: rgba(239, 68, 68, 0.04);
+    border-color: rgba(239, 68, 68, 0.28);
+  }
+}
+
+.masterStatusLeft {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+}
+
+.masterStatusDot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+
+  &[data-state="ok"] {
+    background: #27c376;
+    box-shadow: 0 0 10px rgba(39, 195, 118, 0.5);
+  }
+
+  &[data-state="warn"] {
+    background: #f59e0b;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+  }
+
+  &[data-state="error"] {
+    background: #ef4444;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+  }
+}
+
+.masterStatusTextGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.masterStatusTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f7f8f8;
+  margin: 0;
+}
+
+.masterStatusDesc {
+  font-size: 12px;
+  color: #8a8f98;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.masterStatusAction {
+  flex-shrink: 0;
+}
+
+.masterStatusBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  background: #3186ff;
+  color: #ffffff;
+  border: none;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #2563eb;
+  }
+}
+
+// ─── First-Run Onboarding Card (Empty State) ─────────────────────────────────
+.onboardingCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  padding: 36px 24px;
+  background: #17181c;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  margin: 4px 0;
+}
+
+.onboardingIcon {
+  font-size: 32px;
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.onboardingTitle {
+  font-size: 17px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.onboardingDesc {
+  font-size: 13px;
+  color: #8a8f98;
+  max-width: 480px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.onboardingBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  background: #3186ff;
+  color: #ffffff;
+  border: none;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #2563eb;
+  }
+}
+
 .heroGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -12,6 +170,95 @@
 }
 
 .coolingAlertContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.alertsSummaryBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 6px;
+  padding: 8px 14px;
+}
+
+.alertsSummaryLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+
+  &:hover .alertsSummaryTitle {
+    color: #fef08a;
+  }
+}
+
+.alertsSummaryTitle {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #fbbf24;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.15s ease;
+}
+
+.alertsSummaryActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.alertsToggleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: #fbbf24;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(245, 158, 11, 0.4);
+  }
+}
+
+.alertsDismissAllBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: #8a8f98;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.08);
+  }
+}
+
+.alertsListCollapsible {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -49,6 +296,27 @@
   font-weight: 500;
   color: #fbbf24;
   line-height: 1.4;
+  flex: 1;
+}
+
+.alertDismissBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: transparent;
+  border: none;
+  color: #8a8f98;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+  }
 }
 
 .heroCard {
@@ -364,10 +632,18 @@
   height: 100%;
 }
 
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  background: currentColor;
+}
+
 .metaItemReady {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   font-size: 11px;
   color: #27c376;
   font-weight: 600;
@@ -380,7 +656,7 @@
 .metaItemWarn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   font-size: 11px;
   color: #f59e0b;
   font-weight: 600;
@@ -393,7 +669,7 @@
 .metaItemDisabled {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   font-size: 11px;
   color: #8a8f98;
   font-weight: 500;

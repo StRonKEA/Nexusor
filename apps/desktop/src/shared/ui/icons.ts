@@ -167,3 +167,28 @@ export const gearIcon = icon(
 export const emptyHexIcon = icon(
   '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></g>'
 ); // lucide:box (Empty slot state)
+
+export const arrowUpIcon = icon(
+  '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></g>'
+); // lucide:arrow-up
+
+export const arrowDownIcon = icon(
+  '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></g>'
+); // lucide:arrow-down
+
+export const closeIcon = icon(
+  '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></g>'
+); // lucide:x
+
+export const arrowRightIcon = icon(
+  '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></g>'
+); // lucide:arrow-right
+
+export const arrowLeftIcon = icon(
+  '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></g>'
+); // lucide:arrow-left
+
+export const skipForwardIcon = icon(
+  '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 4 10 8-10 8Z"/><line x1="19" x2="19" y1="5" y2="19"/></g>'
+); // lucide:skip-forward (fill_first semantic)
+

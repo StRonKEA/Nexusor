@@ -9,7 +9,6 @@ import {
 import { PageContent } from "../../shell/layout/PageContent";
 import { Card } from "../../shared/ui/Card";
 import { Button } from "../../shared/ui/Button";
-import { Modal } from "../../shared/ui/Modal";
 import { ConfirmDialog } from "../../shared/ui/ConfirmDialog";
 import { Switch } from "../../shared/ui/Switch";
 import { Icon } from "../../shared/ui/Icon";
@@ -20,12 +19,17 @@ import {
   speedIcon,
   gearIcon,
   emptyHexIcon,
+  arrowRightIcon,
+  skipForwardIcon,
+  refreshIcon,
 } from "../../shared/ui/icons";
 import { useMessage } from "../../shared/ui/message";
 import { useAppStore } from "../../shared/store/appStore";
 import { getProviderLogo } from "../../shared/utils/providerIcons";
 import { useI18n } from "../../i18n/store";
 import { TaskEnginesTab } from "./TaskEnginesTab";
+import { AutoRouterWizard } from "./AutoRouterWizard";
+import { CustomComboWizard, type WizardState } from "./CustomComboWizard";
 import styles from "./CombosPage.module.scss";
 
 // ─── Domain types ─────────────────────────────────────────────────────────────
@@ -53,7 +57,7 @@ export interface ModelOption {
 }
 
 /** Represents a concrete (account, model) slot in any chain */
-interface WizardSlot {
+export interface WizardSlot {
   /** Unique key: `${accountId}::${modelId}` */
   key: string;
   accountId: string;
@@ -64,19 +68,6 @@ interface WizardSlot {
   modelId: string;
   modelLabel: string;
   modelIcon: string | null;
-}
-
-// ─── Custom Combo Wizard State ───────────────────────────────────────────────
-
-type WizardStep = 1 | 2 | 3 | 4;
-
-interface WizardState {
-  combo_id: string;
-  selectedAccountIds: Set<string>;
-  selectedSlots: WizardSlot[];
-  chainStrategy: "fallback" | "round_robin" | "fill_first" | "most_quota";
-  name: string;
-  description: string;
 }
 
 function freshWizard(): WizardState {
@@ -90,28 +81,9 @@ function freshWizard(): WizardState {
   };
 }
 
-// ─── Auto Router Wizard State ─────────────────────────────────────────────────
-
-interface AutoWizardState {
-  codingSlots: WizardSlot[];
-  reasoningSlots: WizardSlot[];
-  fastSlots: WizardSlot[];
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function statusClass(status: Account["status"]) {
-  if (status === "ready") return styles.statusReady;
-  if (status === "cooling") return styles.statusCooling;
-  if (status === "disabled") return styles.statusDisabled;
-  return styles.statusInvalid;
-}
-
-function statusDot(_status: Account["status"]) {
-  return "●";
-}
-
-function chainStrategyLabel(s: string) {
+function chainStrategyLabel(s: string, t: (key: string, params?: Record<string, unknown>) => string) {
   if (s === "round_robin") return t("combos.chain_round_robin");
   if (s === "fill_first") return t("combos.chain_fill_first");
   if (s === "most_quota") return t("combos.chain_most_quota");
@@ -122,7 +94,7 @@ function chainStrategyLabel(s: string) {
 
 export function CombosPage() {
   const message = useMessage();
-  const { locale } = useI18n();
+  const { t, locale } = useI18n();
   const { models, plugins } = useAppStore();
 
   const [mainTab, setMainTab] = useState<"auto" | "chains" | "engines">("auto");
@@ -141,24 +113,11 @@ export function CombosPage() {
     updated_at_ms: 0,
   });
 
-  // Custom combo modal state
+  // Modal visibility and state
   const [comboWizardOpen, setComboWizardOpen] = useState(false);
-  const [comboStep, setComboStep] = useState<WizardStep>(1);
-  const [comboWizard, setComboWizard] = useState<WizardState>(freshWizard);
-  const [comboSearch, setComboSearch] = useState("");
   const [editingComboId, setEditingComboId] = useState<string | null>(null);
-  const [comboSaving, setComboSaving] = useState(false);
-
-  // Auto Router modal state
+  const [activeComboWizard, setActiveComboWizard] = useState<WizardState>(freshWizard);
   const [autoWizardOpen, setAutoWizardOpen] = useState(false);
-  const [autoWizardStep, setAutoWizardStep] = useState<1 | 2 | 3 | 4>(1);
-  const [autoWizard, setAutoWizard] = useState<AutoWizardState>({
-    codingSlots: [],
-    reasoningSlots: [],
-    fastSlots: [],
-  });
-  const [autoSearch, setAutoSearch] = useState("");
-  const [autoSaving, setAutoSaving] = useState(false);
 
   const loadAll = async () => {
     try { setCombos(await api.routerCombos()); } catch (e) { message(String(e)); }
@@ -170,8 +129,6 @@ export function CombosPage() {
     }
   };
 
-  // Refetch when the configured plugin set changes. `useMemo` would run during
-  // render and race with the store snapshot it depends on.
   useEffect(() => { void loadAll(); }, [plugins.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleAutoSmart = async () => {
@@ -253,7 +210,7 @@ export function CombosPage() {
     return result;
   }, [models, plugins, locale]);
 
-  // Account groups for Custom Combo Step 1
+  // Account groups for Custom Combo
   const accountGroups = useMemo(() => {
     const map = new Map<string, { label: string; icon: string | null; accounts: Account[] }>();
     for (const acc of accounts) {
@@ -276,7 +233,7 @@ export function CombosPage() {
       return {
         key: `${acc?.id ?? aid ?? "any"}::${s.model_id}`,
         accountId: acc?.id ?? aid ?? s.model_id,
-        accountLabel: acc?.label ?? "Hesap",
+        accountLabel: acc?.label ?? t("combos.models_label"),
         accountSubLabel: acc?.subLabel ?? "",
         accountIcon: acc?.icon ?? null,
         pluginId: acc?.pluginId ?? null,
@@ -287,154 +244,9 @@ export function CombosPage() {
     });
   };
 
-  // ── Auto Router Wizard handlers ───────────────────────────────────────────
-  const openAutoWizard = () => {
-    setAutoWizard({
-      codingSlots: mapComboSlotsToWizard(autoConfig.coding_slots),
-      reasoningSlots: mapComboSlotsToWizard(autoConfig.reasoning_slots),
-      fastSlots: mapComboSlotsToWizard(autoConfig.fast_slots),
-    });
-    setAutoWizardStep(1);
-    setAutoSearch("");
-    setAutoWizardOpen(true);
-  };
-
-  const saveAutoWizard = async () => {
-    setAutoSaving(true);
-    try {
-      const toComboSlots = (slots: WizardSlot[]): ComboSlot[] => {
-        return slots.map((s) => ({
-          model_id: s.modelId,
-          account_ids: s.pluginId ? [s.accountId] : null,
-          slot_strategy: "fallback",
-        }));
-      };
-
-      const newConfig: AutoRouterConfig = {
-        ...autoConfig,
-        coding_slots: toComboSlots(autoWizard.codingSlots),
-        reasoning_slots: toComboSlots(autoWizard.reasoningSlots),
-        fast_slots: toComboSlots(autoWizard.fastSlots),
-        updated_at_ms: Date.now(),
-      };
-
-      await api.saveAutoRouterConfig(newConfig);
-      setAutoConfig(newConfig);
-      setAutoWizardOpen(false);
-      message(t("combos.auto_config_saved"));
-    } catch (e) {
-      message(String(e));
-    } finally {
-      setAutoSaving(false);
-    }
-  };
-
-  const getAutoStepSlots = (step: 1 | 2 | 3): WizardSlot[] => {
-    if (step === 1) return autoWizard.codingSlots;
-    if (step === 2) return autoWizard.reasoningSlots;
-    return autoWizard.fastSlots;
-  };
-
-  const toggleAutoSlot = (step: 1 | 2 | 3, account: Account, model: ModelOption) => {
-    const key = `${account.id}::${model.id}`;
-    setAutoWizard((w) => {
-      const prop = step === 1 ? "codingSlots" : step === 2 ? "reasoningSlots" : "fastSlots";
-      const current = w[prop];
-      const exists = current.some((s) => s.key === key);
-      const updated = exists
-        ? current.filter((s) => s.key !== key)
-        : [
-            ...current,
-            {
-              key,
-              accountId: account.id,
-              accountLabel: account.label,
-              accountSubLabel: account.subLabel,
-              accountIcon: account.icon,
-              pluginId: account.pluginId,
-              modelId: model.id,
-              modelLabel: model.label,
-              modelIcon: model.icon || account.icon,
-            },
-          ];
-      return { ...w, [prop]: updated };
-    });
-  };
-
-  const moveAutoSlot = (step: 1 | 2 | 3, index: number, delta: -1 | 1) => {
-    setAutoWizard((w) => {
-      const prop = step === 1 ? "codingSlots" : step === 2 ? "reasoningSlots" : "fastSlots";
-      const target = index + delta;
-      const current = w[prop];
-      if (target < 0 || target >= current.length) return w;
-      const next = [...current];
-      [next[index], next[target]] = [next[target], next[index]];
-      return { ...w, [prop]: next };
-    });
-  };
-
-  const removeAutoSlot = (step: 1 | 2 | 3, index: number) => {
-    setAutoWizard((w) => {
-      const prop = step === 1 ? "codingSlots" : step === 2 ? "reasoningSlots" : "fastSlots";
-      const current = w[prop];
-      return { ...w, [prop]: current.filter((_, i) => i !== index) };
-    });
-  };
-
-  // Filtered accounts for Auto Wizard
-  const filteredAccountsForAuto = useMemo(() => {
-    const q = autoSearch.trim().toLowerCase();
-    return accounts
-      .map((acc) => {
-        if (!q) return acc;
-        const accMatch =
-          acc.label.toLowerCase().includes(q) ||
-          acc.subLabel.toLowerCase().includes(q) ||
-          acc.providerLabel.toLowerCase().includes(q);
-        const matchedMods = acc.modelOptions.filter(
-          (m) =>
-            accMatch ||
-            m.label.toLowerCase().includes(q) ||
-            m.id.toLowerCase().includes(q)
-        );
-        return { ...acc, modelOptions: matchedMods };
-      })
-      .filter((a) => a.modelOptions.length > 0);
-  }, [accounts, autoSearch]);
-
-  // ── Custom Combo Wizard handlers ──────────────────────────────────────────
-  const modelsByAccount = useMemo(() => {
-    return accounts
-      .filter((a) => comboWizard.selectedAccountIds.has(a.id))
-      .map((a) => ({ account: a, models: a.modelOptions }))
-      .filter((g) => g.models.length > 0);
-  }, [accounts, comboWizard.selectedAccountIds]);
-
-  const filteredModelsByAccount = useMemo(() => {
-    const q = comboSearch.trim().toLowerCase();
-    if (!q) return modelsByAccount;
-    return modelsByAccount
-      .map(({ account, models: mods }) => {
-        const accMatch =
-          account.label.toLowerCase().includes(q) ||
-          account.subLabel.toLowerCase().includes(q) ||
-          account.providerLabel.toLowerCase().includes(q);
-        const matchedMods = mods.filter(
-          (m) =>
-            accMatch ||
-            m.label.toLowerCase().includes(q) ||
-            m.id.toLowerCase().includes(q)
-        );
-        return { account, models: matchedMods };
-      })
-      .filter((g) => g.models.length > 0);
-  }, [modelsByAccount, comboSearch]);
-
   const openCreateCombo = () => {
-    setComboWizard(freshWizard());
+    setActiveComboWizard(freshWizard());
     setEditingComboId(null);
-    setComboSearch("");
-    setComboStep(1);
     setComboWizardOpen(true);
   };
 
@@ -451,7 +263,7 @@ export function CombosPage() {
     const slots = mapComboSlotsToWizard(rawSlots);
     for (const s of slots) accountIds.add(s.accountId);
 
-    setComboWizard({
+    setActiveComboWizard({
       combo_id: combo.combo_id,
       selectedAccountIds: accountIds,
       selectedSlots: slots,
@@ -467,45 +279,7 @@ export function CombosPage() {
       description: combo.description ?? "",
     });
     setEditingComboId(combo.combo_id);
-    setComboSearch("");
-    setComboStep(1);
     setComboWizardOpen(true);
-  };
-
-  const handleSaveCombo = async () => {
-    if (!comboWizard.name.trim()) {
-      message(t("combos.please_enter_a_name_for_the_comb"));
-      return;
-    }
-    setComboSaving(true);
-    try {
-      const existing = combos.find((c) => c.combo_id === comboWizard.combo_id);
-      const slots: ComboSlot[] = comboWizard.selectedSlots.map((s) => ({
-        model_id: s.modelId,
-        account_ids: s.pluginId ? [s.accountId] : null,
-        slot_strategy: comboWizard.chainStrategy,
-      }));
-
-      await api.upsertRouterCombo({
-        combo_id: comboWizard.combo_id,
-        name: comboWizard.name.trim(),
-        description: comboWizard.description.trim() || null,
-        strategy: comboWizard.chainStrategy,
-        models: slots.map((s) => s.model_id),
-        slots,
-        enabled: existing?.enabled ?? true,
-        created_at_ms: existing?.created_at_ms ?? Date.now(),
-        updated_at_ms: Date.now(),
-      });
-
-      setComboWizardOpen(false);
-      await loadAll();
-      message(editingComboId ? t("combos.combo_updated") : t("combos.smart_combo_created_successfully"));
-    } catch (e) {
-      message(String(e));
-    } finally {
-      setComboSaving(false);
-    }
   };
 
   const handleDeleteCombo = async (id: string) => {
@@ -518,64 +292,6 @@ export function CombosPage() {
     catch (e) { message(String(e)); }
   };
 
-  const toggleAccount = (id: string) => setComboWizard((w) => {
-    const next = new Set(w.selectedAccountIds);
-    if (next.has(id)) {
-      next.delete(id);
-      return {
-        ...w,
-        selectedAccountIds: next,
-        selectedSlots: w.selectedSlots.filter((s) => s.accountId !== id),
-      };
-    } else {
-      next.add(id);
-      return { ...w, selectedAccountIds: next };
-    }
-  });
-
-  const toggleComboSlot = (account: Account, model: ModelOption) => {
-    const key = `${account.id}::${model.id}`;
-    setComboWizard((w) => {
-      const exists = w.selectedSlots.some((s) => s.key === key);
-      if (exists) {
-        return {
-          ...w,
-          selectedSlots: w.selectedSlots.filter((s) => s.key !== key),
-        };
-      } else {
-        const newSlot: WizardSlot = {
-          key,
-          accountId: account.id,
-          accountLabel: account.label,
-          accountSubLabel: account.subLabel,
-          accountIcon: account.icon,
-          pluginId: account.pluginId,
-          modelId: model.id,
-          modelLabel: model.label,
-          modelIcon: model.icon || account.icon,
-        };
-        return {
-          ...w,
-          selectedSlots: [...w.selectedSlots, newSlot],
-        };
-      }
-    });
-  };
-
-  const moveComboSlot = (index: number, delta: -1 | 1) => {
-    setComboWizard((w) => {
-      const target = index + delta;
-      if (target < 0 || target >= w.selectedSlots.length) return w;
-      const next = [...w.selectedSlots];
-      [next[index], next[target]] = [next[target], next[index]];
-      return { ...w, selectedSlots: next };
-    });
-  };
-
-  // ── Render Page ───────────────────────────────────────────────────────────
-  const stepLabels = ["", t("combos.step_accounts"), t("combos.step_models"), t("combos.step_order"), t("combos.step_summary")];
-  const autoStepLabels = ["", t("combos.auto_step_coding"), t("combos.auto_step_reasoning"), t("combos.auto_step_fast"), t("combos.auto_step_summary")];
-
   const pageContent = (
     <div className={styles.page}>
       <div className={styles.mainTabBar}>
@@ -584,14 +300,14 @@ export function CombosPage() {
           className={`${styles.mainTabButton} ${mainTab === "auto" ? styles.mainTabActive : ""}`}
           onClick={() => setMainTab("auto")}
         >
-          <span>Akıllı Yönlendirici (Auto Router)</span>
+          <span>{t("combos.tab_auto")}</span>
         </button>
         <button
           type="button"
           className={`${styles.mainTabButton} ${mainTab === "chains" ? styles.mainTabActive : ""}`}
           onClick={() => setMainTab("chains")}
         >
-          <span>Özel Model Zincirleri ({combos.length})</span>
+          <span>{t("combos.tab_chains", { count: combos.length })}</span>
         </button>
         <button
           type="button"
@@ -617,8 +333,8 @@ export function CombosPage() {
               </div>
             </div>
             <div className={styles.autoActions}>
-              <Button variant="secondary" size="small" onClick={openAutoWizard}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <Button variant="secondary" size="small" onClick={() => setAutoWizardOpen(true)}>
+                <span className={styles.inlineButtonContent}>
                   <Icon icon={gearIcon} size="1.1em" /> {t("combos.configure_auto")}
                 </span>
               </Button>
@@ -727,13 +443,14 @@ export function CombosPage() {
           </div>
 
           {combos.length === 0 ? (
-            <EmptyState onAdd={openCreateCombo} />
+            <EmptyState onAdd={openCreateCombo} t={t} />
           ) : (
             combos.map((combo) => (
               <ComboCard
                 key={combo.combo_id}
                 combo={combo}
                 accounts={accounts}
+                t={t}
                 onEdit={() => openEditCombo(combo)}
                 onDelete={() => setDeletingCombo(combo)}
                 onToggle={() => void handleToggleCombo(combo)}
@@ -781,634 +498,37 @@ export function CombosPage() {
         </p>
       </ConfirmDialog>
 
-      {/* ── Modal 1: Auto Mode Setup Wizard ── */}
-      <Modal
-        open={autoWizardOpen}
-        title={t("combos.auto_wizard_title")}
-        busy={autoSaving}
-        onClose={() => setAutoWizardOpen(false)}
-      >
-        <div className={styles.wizardWrap}>
-          {/* Progress strip */}
-          <div className={styles.wizardProgress}>
-            {([1, 2, 3, 4] as const).map((s) => (
-              <div
-                key={s}
-                className={`${styles.wizardDot} ${s <= autoWizardStep ? styles.wizardDotActive : ""}`}
-                title={autoStepLabels[s]}
-              />
-            ))}
-            <span className={styles.wizardStepLabel}>{autoStepLabels[autoWizardStep]}</span>
-          </div>
+      {/* Auto Router Wizard Modal */}
+      {autoWizardOpen && (
+        <AutoRouterWizard
+          open={autoWizardOpen}
+          onClose={() => setAutoWizardOpen(false)}
+          autoConfig={autoConfig}
+          onConfigSaved={setAutoConfig}
+          accounts={accounts}
+          cleanModelName={cleanModelName}
+        />
+      )}
 
-          <div className={styles.wizardScroll}>
-            {/* Steps 1, 2, 3: Category Configuration */}
-            {(autoWizardStep === 1 || autoWizardStep === 2 || autoWizardStep === 3) && (() => {
-              const step = autoWizardStep as 1 | 2 | 3;
-              const slots = getAutoStepSlots(step);
-              const info =
-                step === 1
-                  ? {
-                      title: t("combos.auto_step_coding"),
-                      icon: codeIcon,
-                      desc: t("combos.auto_coding_desc"),
-                      chips: [
-                        "Claude Fable 5",
-                        "GPT-5.6 Sol",
-                        "GPT-5.5",
-                        "DeepSeek-V4-Pro (1.6T)",
-                        "Kimi K3 (2.8T)",
-                        "Claude Sonnet 5",
-                      ],
-                    }
-                  : step === 2
-                  ? {
-                      title: t("combos.auto_step_reasoning"),
-                      icon: brainIcon,
-                      desc: t("combos.auto_reasoning_desc"),
-                      chips: [
-                        "GLM-5.2 (753B)",
-                        "Kimi K2.6 (1T)",
-                        "Claude Fable 5",
-                        "GPT-5.6 Sol",
-                        "DeepSeek-V4-Pro",
-                        "DeepSeek-R1",
-                      ],
-                    }
-                  : {
-                      title: t("combos.auto_step_fast"),
-                      icon: speedIcon,
-                      desc: t("combos.auto_fast_desc"),
-                      chips: [
-                        "DeepSeek-V4-Flash (284B)",
-                        "Qwen3.6-Plus / 27B",
-                        "Gemini 3.8 Flash",
-                        "MiniMax M3",
-                        "Groq Llama 3.3 70B",
-                      ],
-                    };
-
-              return (
-                <div className={styles.stepRoot}>
-                  {/* Step Category Title */}
-                  <div className={styles.autoStepHeader}>
-                    <div className={styles.autoCatHeader}>
-                      <span className={styles.autoCatIconSvg}><Icon icon={info.icon} size="1.1em" /></span>
-                      <span style={{ fontSize: "0.95rem" }}>{info.title}</span>
-                    </div>
-                  </div>
-                  {/* Informative Guidance Banner */}
-                  <div className={styles.autoInfoBanner}>
-                    <p className={styles.autoInfoText}>{info.desc}</p>
-                    <div className={styles.autoExampleRow}>
-                      <span className={styles.autoExampleLabel}>{t("combos.example_models")}</span>
-                      {info.chips.map((chip) => (
-                        <span key={chip} className={styles.autoExampleChip}>{chip}</span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Selected Slots list for this category with reordering */}
-                  {slots.length > 0 && (
-                    <div className={styles.selectedSlotsSection}>
-                      <span className={styles.selectedSlotsHeader}>
-                        {t("combos.attempt_order")} ({slots.length} model)
-                      </span>
-                      <div className={styles.slotList}>
-                        {slots.map((slot, idx) => (
-                          <div key={slot.key} className={styles.slot}>
-                            <span className={styles.slotIndex}>{idx + 1}</span>
-                            {slot.modelIcon && <img src={slot.modelIcon} alt="" className={styles.slotIcon} />}
-                            <div className={styles.slotInfo}>
-                              <span className={styles.slotName}>{slot.modelLabel}</span>
-                              <span className={styles.slotAccountBadge}>
-                                {slot.accountLabel}
-                                {slot.accountSubLabel && ` · ${slot.accountSubLabel}`}
-                              </span>
-                            </div>
-                            <div className={styles.slotMoves}>
-                              <button
-                                className={styles.slotMoveBtn}
-                                disabled={idx === 0}
-                                onClick={() => moveAutoSlot(step, idx, -1)}
-                                title={t("combos.move_up")}
-                              >↑</button>
-                              <button
-                                className={styles.slotMoveBtn}
-                                disabled={idx === slots.length - 1}
-                                onClick={() => moveAutoSlot(step, idx, 1)}
-                                title={t("combos.move_down")}
-                              >↓</button>
-                            </div>
-                            <button
-                              className={styles.slotRemoveBtn}
-                              onClick={() => removeAutoSlot(step, idx)}
-                              title={t("combos.remove_from_list")}
-                            >✕</button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Search Bar */}
-                  <div className={styles.searchBar}>
-                    <input
-                      type="text"
-                      className={styles.searchInput}
-                      placeholder={t("combos.search_models_or_accounts")}
-                      value={autoSearch}
-                      onChange={(e) => setAutoSearch(e.target.value)}
-                    />
-                    {autoSearch && (
-                      <button
-                        className={styles.searchClearBtn}
-                        onClick={() => setAutoSearch("")}
-                        type="button"
-                        title={t("common.clear")}
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Account grouped models list */}
-                  {filteredAccountsForAuto.map((acc) => (
-                    <div key={acc.id} className={styles.accountGroup}>
-                      <div className={styles.accountGroupHeader}>
-                        {acc.icon && <img src={acc.icon} alt="" className={styles.groupIcon} />}
-                        <div className={styles.accountHeaderInfo}>
-                          <span>{acc.label}</span>
-                          <span className={styles.accountHeaderSub}>{acc.subLabel}</span>
-                        </div>
-                        <span className={`${styles.accountStatus} ${statusClass(acc.status)}`}>
-                          {statusDot(acc.status)}
-                        </span>
-                      </div>
-                      {acc.modelOptions.map((m) => {
-                        const selIdx = slots.findIndex((s) => s.key === `${acc.id}::${m.id}`);
-                        const isSel = selIdx >= 0;
-                        return (
-                          <label key={m.id} className={`${styles.modelRow} ${isSel ? styles.modelRowSel : ""}`}>
-                            <input
-                              type="checkbox"
-                              checked={isSel}
-                              onChange={() => toggleAutoSlot(step, acc, m)}
-                            />
-                            <span className={styles.modelLabel}>{m.label}</span>
-                            {isSel && (
-                              <span className={styles.selectedBadge}>
-                                ✓ {selIdx + 1}.
-                              </span>
-                            )}
-                          </label>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
-
-            {/* Step 4: Summary of all 3 categories */}
-            {autoWizardStep === 4 && (
-              <div className={styles.stepRoot}>
-                <div className={styles.summaryBox}>
-                  <div className={styles.summaryHeader}>
-                    <span className={styles.summaryTitle}>{t("combos.summary")}</span>
-                    <span className={styles.summaryMeta}>{t("combos.cursor_auto_mode_smart_router")}</span>
-                  </div>
-
-                  {/* 1. Coding Summary */}
-                  <div className={styles.summaryCategorySection}>
-                    <div className={styles.summaryCategoryTitle}>
-                      <span className={styles.autoCatIconSvg}><Icon icon={codeIcon} size="1.1em" /></span>
-                      <span>{t("combos.auto_step_coding")}</span>
-                    </div>
-                    {autoWizard.codingSlots.length === 0 ? (
-                      <span className={styles.autoCatEmpty}>{t("combos.no_slots_in_category")}</span>
-                    ) : (
-                      <div className={styles.summaryVerticalList}>
-                        {autoWizard.codingSlots.map((slot, i) => (
-                          <div key={slot.key} className={styles.summaryItemWrapper}>
-                            <div className={styles.summaryRow}>
-                              <span className={styles.summaryRowIndex}>{i + 1}</span>
-                              {slot.modelIcon && <img src={slot.modelIcon} alt="" className={styles.summaryRowIcon} />}
-                              <span className={styles.summaryRowModel}>{slot.modelLabel}</span>
-                              <span className={styles.summaryRowAccount}>
-                                {slot.accountLabel}
-                                {slot.accountSubLabel && ` · ${slot.accountSubLabel}`}
-                              </span>
-                            </div>
-                            {i < autoWizard.codingSlots.length - 1 && (
-                              <div className={styles.summaryConnector}>
-                                <div className={styles.summaryConnectorLine} />
-                                <span className={styles.summaryConnectorLabel}>
-                                  ↓ {t("combos.failover_to_next")}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 2. Reasoning Summary */}
-                  <div className={styles.summaryCategorySection}>
-                    <div className={styles.summaryCategoryTitle}>
-                      <span className={styles.autoCatIconSvg}><Icon icon={brainIcon} size="1.1em" /></span>
-                      <span>{t("combos.auto_step_reasoning")}</span>
-                    </div>
-                    {autoWizard.reasoningSlots.length === 0 ? (
-                      <span className={styles.autoCatEmpty}>{t("combos.no_slots_in_category")}</span>
-                    ) : (
-                      <div className={styles.summaryVerticalList}>
-                        {autoWizard.reasoningSlots.map((slot, i) => (
-                          <div key={slot.key} className={styles.summaryItemWrapper}>
-                            <div className={styles.summaryRow}>
-                              <span className={styles.summaryRowIndex}>{i + 1}</span>
-                              {slot.modelIcon && <img src={slot.modelIcon} alt="" className={styles.summaryRowIcon} />}
-                              <span className={styles.summaryRowModel}>{slot.modelLabel}</span>
-                              <span className={styles.summaryRowAccount}>
-                                {slot.accountLabel}
-                                {slot.accountSubLabel && ` · ${slot.accountSubLabel}`}
-                              </span>
-                            </div>
-                            {i < autoWizard.reasoningSlots.length - 1 && (
-                              <div className={styles.summaryConnector}>
-                                <div className={styles.summaryConnectorLine} />
-                                <span className={styles.summaryConnectorLabel}>
-                                  ↓ {t("combos.failover_to_next")}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 3. Fast Summary */}
-                  <div className={styles.summaryCategorySection}>
-                    <div className={styles.summaryCategoryTitle}>
-                      <span className={styles.autoCatIconSvg}><Icon icon={speedIcon} size="1.1em" /></span>
-                      <span>{t("combos.auto_step_fast")}</span>
-                    </div>
-                    {autoWizard.fastSlots.length === 0 ? (
-                      <span className={styles.autoCatEmpty}>{t("combos.no_slots_in_category")}</span>
-                    ) : (
-                      <div className={styles.summaryVerticalList}>
-                        {autoWizard.fastSlots.map((slot, i) => (
-                          <div key={slot.key} className={styles.summaryItemWrapper}>
-                            <div className={styles.summaryRow}>
-                              <span className={styles.summaryRowIndex}>{i + 1}</span>
-                              {slot.modelIcon && <img src={slot.modelIcon} alt="" className={styles.summaryRowIcon} />}
-                              <span className={styles.summaryRowModel}>{slot.modelLabel}</span>
-                              <span className={styles.summaryRowAccount}>
-                                {slot.accountLabel}
-                                {slot.accountSubLabel && ` · ${slot.accountSubLabel}`}
-                              </span>
-                            </div>
-                            {i < autoWizard.fastSlots.length - 1 && (
-                              <div className={styles.summaryConnector}>
-                                <div className={styles.summaryConnectorLine} />
-                                <span className={styles.summaryConnectorLabel}>
-                                  ↓ {t("combos.failover_to_next")}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Navigation Footer */}
-          <div className={styles.wizardNav}>
-            <Button
-              variant="secondary"
-              size="small"
-              onClick={() => {
-                if (autoWizardStep === 1) setAutoWizardOpen(false);
-                else setAutoWizardStep((s) => (s - 1) as 1 | 2 | 3 | 4);
-              }}
-            >
-              {autoWizardStep === 1 ? t("common.cancel") : `← ${t("combos.back")}`}
-            </Button>
-            {autoWizardStep < 4 ? (
-              <Button
-                variant="primary"
-                size="small"
-                onClick={() => setAutoWizardStep((s) => (s + 1) as 1 | 2 | 3 | 4)}
-              >
-                {t("combos.next")} →
-              </Button>
-            ) : (
-              <Button
-                variant="primary"
-                size="small"
-                disabled={autoSaving}
-                onClick={() => void saveAutoWizard()}
-              >
-                {autoSaving ? t("common.processing") : t("combos.save_combo")} ✓
-              </Button>
-            )}
-          </div>
-        </div>
-      </Modal>
-
-      {/* ── Modal 2: Custom Combo Wizard ── */}
-      <Modal
-        open={comboWizardOpen}
-        title={editingComboId ? t("combos.edit_model_chain") : t("combos.new_model_chain_fallback_combo")}
-        busy={comboSaving}
-        onClose={() => setComboWizardOpen(false)}
-      >
-        <div className={styles.wizardWrap}>
-          <div className={styles.wizardProgress}>
-            {([1, 2, 3, 4] as WizardStep[]).map((s) => (
-              <div
-                key={s}
-                className={`${styles.wizardDot} ${s <= comboStep ? styles.wizardDotActive : ""}`}
-                title={stepLabels[s]}
-              />
-            ))}
-            <span className={styles.wizardStepLabel}>{stepLabels[comboStep]}</span>
-          </div>
-
-          <div className={styles.wizardScroll}>
-            {/* Step 1: Select Accounts */}
-            {comboStep === 1 && (
-              <div className={styles.stepRoot}>
-                <p className={styles.stepHint}>{t("combos.step1_hint")}</p>
-                {accountGroups.length === 0 && (
-                  <div className={styles.emptySlots}>{t("combos.no_accounts")}</div>
-                )}
-                {accountGroups.map((group) => (
-                  <div key={group.label} className={styles.accountGroup}>
-                    <div className={styles.accountGroupHeader}>
-                      {group.icon && <img src={group.icon} alt="" className={styles.groupIcon} />}
-                      <span>{group.label}</span>
-                      <span className={styles.groupCount}>{group.accounts.length}</span>
-                    </div>
-                    {group.accounts.map((acc) => {
-                      const sel = comboWizard.selectedAccountIds.has(acc.id);
-                      return (
-                        <label key={acc.id} className={`${styles.accountRow} ${sel ? styles.accountRowSel : ""}`}>
-                          <input type="checkbox" checked={sel} onChange={() => toggleAccount(acc.id)} />
-                          <div className={styles.accountInfo}>
-                            <span className={styles.accountLabel}>{acc.label}</span>
-                            <span className={styles.accountSub}>{acc.subLabel}</span>
-                          </div>
-                          <span className={`${styles.accountStatus} ${statusClass(acc.status)}`}>
-                            {statusDot(acc.status)}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Step 2: Select Models */}
-            {comboStep === 2 && (
-              <div className={styles.stepRoot}>
-                <p className={styles.stepHint}>{t("combos.step2_hint")}</p>
-                <div className={styles.searchBar}>
-                  <input
-                    type="text"
-                    className={styles.searchInput}
-                    placeholder={t("combos.search_models_or_accounts")}
-                    value={comboSearch}
-                    onChange={(e) => setComboSearch(e.target.value)}
-                    autoFocus
-                  />
-                  {comboSearch && (
-                    <button
-                      className={styles.searchClearBtn}
-                      onClick={() => setComboSearch("")}
-                      type="button"
-                      title={t("common.clear")}
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-
-                {filteredModelsByAccount.length === 0 && (
-                  <div className={styles.emptySlots}>
-                    {comboSearch ? t("combos.no_models_found") : t("combos.no_models_for_accounts")}
-                  </div>
-                )}
-
-                {filteredModelsByAccount.map(({ account, models: mods }) => (
-                  <div key={account.id} className={styles.accountGroup}>
-                    <div className={styles.accountGroupHeader}>
-                      {account.icon && <img src={account.icon} alt="" className={styles.groupIcon} />}
-                      <div className={styles.accountHeaderInfo}>
-                        <span>{account.label}</span>
-                        <span className={styles.accountHeaderSub}>{account.subLabel}</span>
-                      </div>
-                      <span className={`${styles.accountStatus} ${statusClass(account.status)}`}>
-                        {statusDot(account.status)}
-                      </span>
-                    </div>
-                    {mods.map((m) => {
-                      const selIdx = comboWizard.selectedSlots.findIndex((s) => s.key === `${account.id}::${m.id}`);
-                      const sel = selIdx >= 0;
-                      return (
-                        <label key={m.id} className={`${styles.modelRow} ${sel ? styles.modelRowSel : ""}`}>
-                          <input
-                            type="checkbox"
-                            checked={sel}
-                            onChange={() => toggleComboSlot(account, m)}
-                          />
-                          <span className={styles.modelLabel}>{m.label}</span>
-                          {sel && (
-                            <span className={styles.selectedBadge}>
-                              ✓ {selIdx + 1}.
-                            </span>
-                          )}
-                        </label>
-                      );
-                    })}
-                  </div>
-                ))}
-                {comboWizard.selectedSlots.length === 1 && (
-                  <p className={styles.stepWarning}>{t("combos.select_at_least_2")}</p>
-                )}
-              </div>
-            )}
-
-            {/* Step 3: Order + Strategy */}
-            {comboStep === 3 && (
-              <div className={styles.stepRoot}>
-                <p className={styles.stepHint}>{t("combos.step3_hint")}</p>
-                <div className={styles.slotList}>
-                  {comboWizard.selectedSlots.map((slot, idx) => (
-                    <div key={slot.key} className={styles.slot}>
-                      <span className={styles.slotIndex}>{idx + 1}</span>
-                      {slot.modelIcon && <img src={slot.modelIcon} alt="" className={styles.slotIcon} />}
-                      <div className={styles.slotInfo}>
-                        <span className={styles.slotName}>{slot.modelLabel}</span>
-                        <span className={styles.slotAccountBadge}>
-                          {slot.accountLabel}
-                          {slot.accountSubLabel && ` · ${slot.accountSubLabel}`}
-                        </span>
-                      </div>
-                      <div className={styles.slotMoves}>
-                        <button
-                          className={styles.slotMoveBtn}
-                          disabled={idx === 0}
-                          onClick={() => moveComboSlot(idx, -1)}
-                          title={t("combos.move_up")}
-                        >↑</button>
-                        <button
-                          className={styles.slotMoveBtn}
-                          disabled={idx === comboWizard.selectedSlots.length - 1}
-                          onClick={() => moveComboSlot(idx, 1)}
-                          title={t("combos.move_down")}
-                        >↓</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className={styles.sectionDivider}>
-                  <span>{t("combos.chain_behavior")}</span>
-                </div>
-                <div className={styles.radioGroup}>
-                  {(["fallback", "round_robin", "fill_first", "most_quota"] as const).map((s) => (
-                    <label key={s} className={`${styles.radioCard} ${comboWizard.chainStrategy === s ? styles.radioCardSel : ""}`}>
-                      <input
-                        type="radio"
-                        name="chain"
-                        value={s}
-                        checked={comboWizard.chainStrategy === s}
-                        onChange={() => setComboWizard((w) => ({ ...w, chainStrategy: s }))}
-                      />
-                      <div className={styles.radioCardBody}>
-                        <span className={styles.radioCardTitle}>{chainStrategyLabel(s)}</span>
-                        <span className={styles.radioCardDesc}>
-                          {s === "fallback"
-                            ? t("combos.chain_failover_hint")
-                            : s === "fill_first"
-                            ? t("combos.chain_fill_first_hint")
-                            : s === "most_quota"
-                            ? t("combos.chain_most_quota_hint")
-                            : t("combos.chain_round_robin_hint")}
-                        </span>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Step 4: Name + Summary */}
-            {comboStep === 4 && (
-              <div className={styles.stepRoot}>
-                <div className={styles.formField}>
-                  <label className={styles.formLabel}>{t("combos.chain_combo_name")}</label>
-                  <input
-                    className={styles.formInput}
-                    placeholder={t("combos.e_g_coding_chain")}
-                    value={comboWizard.name}
-                    onChange={(e) => setComboWizard((w) => ({ ...w, name: e.target.value }))}
-                    autoFocus
-                  />
-                </div>
-                <div className={styles.formField}>
-                  <label className={styles.formLabel}>{t("combos.description")}</label>
-                  <input
-                    className={styles.formInput}
-                    placeholder={t("combos.e_g_switch_to_gemini_when_claude")}
-                    value={comboWizard.description}
-                    onChange={(e) => setComboWizard((w) => ({ ...w, description: e.target.value }))}
-                  />
-                </div>
-                <div className={styles.summaryBox}>
-                  <div className={styles.summaryHeader}>
-                    <span className={styles.summaryTitle}>{t("combos.summary")}</span>
-                    <span className={styles.summaryMeta}>
-                      {comboWizard.selectedSlots.length} {t("combos.models_label")} · {chainStrategyLabel(comboWizard.chainStrategy)}
-                    </span>
-                  </div>
-                  <div className={styles.summaryVerticalList}>
-                    {comboWizard.selectedSlots.map((slot, i) => (
-                      <div key={slot.key} className={styles.summaryItemWrapper}>
-                        <div className={styles.summaryRow}>
-                          <span className={styles.summaryRowIndex}>{i + 1}</span>
-                          {slot.modelIcon && <img src={slot.modelIcon} alt="" className={styles.summaryRowIcon} />}
-                          <span className={styles.summaryRowModel}>{slot.modelLabel}</span>
-                          <span className={styles.summaryRowAccount}>
-                            {slot.accountLabel}
-                            {slot.accountSubLabel && ` · ${slot.accountSubLabel}`}
-                          </span>
-                        </div>
-                        {i < comboWizard.selectedSlots.length - 1 && (
-                          <div className={styles.summaryConnector}>
-                            <div className={styles.summaryConnectorLine} />
-                            <span className={styles.summaryConnectorLabel}>
-                              {comboWizard.chainStrategy === "fallback"
-                                ? `↓ ${t("combos.failover_to_next")}`
-                                : `↻ ${t("combos.round_robin_next")}`}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className={styles.wizardNav}>
-            <Button
-              variant="secondary"
-              size="small"
-              onClick={() => {
-                if (comboStep === 1) setComboWizardOpen(false);
-                else setComboStep((s) => (s - 1) as WizardStep);
-              }}
-            >
-              {comboStep === 1 ? t("common.cancel") : `← ${t("combos.back")}`}
-            </Button>
-            {comboStep < 4 ? (
-              <Button
-                variant="primary"
-                size="small"
-                disabled={comboStep === 1 ? comboWizard.selectedAccountIds.size === 0 : comboStep === 2 ? comboWizard.selectedSlots.length < 2 : false}
-                onClick={() => setComboStep((s) => (s + 1) as WizardStep)}
-              >
-                {t("combos.next")} →
-              </Button>
-            ) : (
-              <Button
-                variant="primary"
-                size="small"
-                disabled={comboWizard.name.trim().length === 0 || comboSaving}
-                onClick={() => void handleSaveCombo()}
-              >
-                {comboSaving ? t("common.processing") : t("combos.save_combo")} ✓
-              </Button>
-            )}
-          </div>
-        </div>
-      </Modal>
+      {/* Custom Combo Wizard Modal */}
+      {comboWizardOpen && (
+        <CustomComboWizard
+          open={comboWizardOpen}
+          onClose={() => setComboWizardOpen(false)}
+          editingComboId={editingComboId}
+          initialWizard={activeComboWizard}
+          combos={combos}
+          onComboSaved={loadAll}
+          accounts={accounts}
+          accountGroups={accountGroups}
+        />
+      )}
     </>
   );
 }
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
-function EmptyState({ onAdd }: { onAdd: () => void }) {
+function EmptyState({ onAdd, t }: { onAdd: () => void; t: (key: string) => string }) {
   return (
     <div className={styles.emptyState}>
       <div className={styles.emptyIcon}><Icon icon={emptyHexIcon} size="2.5em" /></div>
@@ -1422,9 +542,10 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 }
 
 // ─── Combo card ───────────────────────────────────────────────────────────────
-function ComboCard({ combo, accounts, onEdit, onDelete, onToggle }: {
+function ComboCard({ combo, accounts, t, onEdit, onDelete, onToggle }: {
   combo: RouterCombo;
   accounts: Account[];
+  t: (key: string, params?: Record<string, unknown>) => string;
   onEdit: () => void;
   onDelete: () => void;
   onToggle: () => void;
@@ -1477,7 +598,7 @@ function ComboCard({ combo, accounts, onEdit, onDelete, onToggle }: {
           <span className={`${styles.dot} ${combo.enabled ? styles.dotActive : styles.dotOff}`} />
           <h3 className={styles.comboName}>{combo.name}</h3>
           {!combo.enabled && <span className={styles.disabledTag}>{t("combos.disabled")}</span>}
-          <span className={styles.comboBadge}>{chainStrategyLabel(combo.strategy)}</span>
+          <span className={styles.comboBadge}>{chainStrategyLabel(combo.strategy, t)}</span>
         </div>
         <div className={styles.comboCardActions}>
           <Button size="small" variant="secondary" onClick={onToggle}>
@@ -1497,7 +618,7 @@ function ComboCard({ combo, accounts, onEdit, onDelete, onToggle }: {
               <span className={styles.slotReadName}>{group.label}</span>
               {group.count > 1 ? (
                 <span className={styles.slotReadAccount}>
-                  {group.count} Hesap Havuzu ({group.accounts.map((a) => a.label).join(", ")})
+                  {t("combos.account_pool_format", { count: group.count, accounts: group.accounts.map((a) => a.label).join(", ") })}
                 </span>
               ) : group.accounts[0] ? (
                 <span className={styles.slotReadAccount}>
@@ -1507,7 +628,7 @@ function ComboCard({ combo, accounts, onEdit, onDelete, onToggle }: {
             </div>
             {idx < groupedSlots.length - 1 && (
               <span className={styles.slotArrow}>
-                {combo.strategy === "round_robin" ? "↻" : combo.strategy === "fill_first" ? "⇥" : "→"}
+                <Icon icon={combo.strategy === "round_robin" ? refreshIcon : combo.strategy === "fill_first" ? skipForwardIcon : arrowRightIcon} size="1em" />
               </span>
             )}
           </div>

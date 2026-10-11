@@ -47,6 +47,9 @@ export function SettingsPage() {
   const [proxyDraft, setProxyDraft] = useState<ProxySettingsInput>({ mode: "default", address: "", auth_enabled: false, username: "", password: "" });
   const [editingProxy, setEditingProxy] = useState(false);
   const [savingProxy, setSavingProxy] = useState(false);
+  const [quotaNotificationsEnabled, setQuotaNotificationsEnabled] = useState(() => {
+    return localStorage.getItem("nexusor_quota_notifications_enabled") === "true";
+  });
   const [quotaAlertThreshold, setQuotaAlertThreshold] = useState(() => {
     return localStorage.getItem("nexusor_quota_alert_threshold") || "15";
   });
@@ -205,33 +208,54 @@ export function SettingsPage() {
         <TitledCard title={t("settings.quota_alert_threshold_title")}>
           <div className={styles.settingRow}>
             <div>
-              <strong>{t("settings.quota_alert_threshold_label")}</strong>
-              <small>{t("settings.quota_alert_threshold_hint")}</small>
+              <strong>{t("settings.quota_notifications_enable_label")}</strong>
+              <small>{t("settings.quota_notifications_enable_hint")}</small>
             </div>
-            <div className={styles.languageControl}>
-              <Select
-                value={quotaAlertThreshold}
-                ariaLabel={t("settings.quota_alert_threshold_label")}
-                options={[
-                  { value: "0", label: t("settings.quota_threshold_off") },
-                  { value: "5", label: "%5" },
-                  { value: "10", label: "%10" },
-                  { value: "15", label: t("settings.quota_threshold_default", { value: 15 }) },
-                  { value: "20", label: "%20" },
-                  { value: "25", label: "%25" },
-                ]}
-                onChange={(val) => {
-                  setQuotaAlertThreshold(val);
-                  localStorage.setItem("nexusor_quota_alert_threshold", val);
-                  message(
-                    t("settings.quota_threshold_saved", {
-                      value: val === "0" ? t("settings.quota_threshold_off") : `%${val}`,
-                    })
-                  );
-                }}
-              />
-            </div>
+            <Checkbox
+              label=""
+              checked={quotaNotificationsEnabled}
+              onChange={(checked) => {
+                setQuotaNotificationsEnabled(checked);
+                localStorage.setItem("nexusor_quota_notifications_enabled", String(checked));
+                message(
+                  checked
+                    ? t("settings.quota_notifications_enabled")
+                    : t("settings.quota_notifications_disabled")
+                );
+              }}
+            />
           </div>
+          {quotaNotificationsEnabled && (
+            <div className={styles.settingRow} style={{ borderTop: "1px solid rgba(255, 255, 255, 0.06)", paddingTop: 12 }}>
+              <div>
+                <strong>{t("settings.quota_alert_threshold_label")}</strong>
+                <small>{t("settings.quota_alert_threshold_hint")}</small>
+              </div>
+              <div className={styles.languageControl}>
+                <Select
+                  value={quotaAlertThreshold}
+                  ariaLabel={t("settings.quota_alert_threshold_label")}
+                  options={[
+                    { value: "0", label: t("settings.quota_threshold_off") },
+                    { value: "5", label: "%5" },
+                    { value: "10", label: "%10" },
+                    { value: "15", label: t("settings.quota_threshold_default", { value: 15 }) },
+                    { value: "20", label: "%20" },
+                    { value: "25", label: "%25" },
+                  ]}
+                  onChange={(val) => {
+                    setQuotaAlertThreshold(val);
+                    localStorage.setItem("nexusor_quota_alert_threshold", val);
+                    message(
+                      t("settings.quota_threshold_saved", {
+                        value: val === "0" ? t("settings.quota_threshold_off") : `%${val}`,
+                      })
+                    );
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </TitledCard>
 
         <TitledCard title={t("settings.storage_management")}>
@@ -293,28 +317,6 @@ export function SettingsPage() {
         </div>
       </TitledCard>
 
-      <TitledCard title={t("settings.storage_management")}>
-        <div className={styles.storageRow}>
-          <div>
-            <strong>{t("settings.statistics")}</strong>
-            <small>
-              {storage
-                ? `${t("settings.call_records_trace_records", {
-                    calls: storage.call_count,
-                    traces: storage.trace_count,
-                  })}${
-                    storage.database_bytes
-                      ? ` · ${(storage.database_bytes / 1024 / 1024).toFixed(1)} MB`
-                      : ""
-                  }`
-                : t("settings.calculating")}
-            </small>
-          </div>
-          <button type="button" className={styles.textButton} onClick={() => { setClearScope("details"); setConfirmClear(true); }}>
-            {t("settings.clear_storage")}
-          </button>
-        </div>
-      </TitledCard>
     </>;
   }
 

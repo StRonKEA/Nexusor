@@ -8,6 +8,9 @@ import { Card } from "../../shared/ui/Card";
 import { Modal } from "../../shared/ui/Modal";
 import { ConfirmDialog } from "../../shared/ui/ConfirmDialog";
 import { useMessage } from "../../shared/ui/message";
+import { useI18n } from "../../i18n/store";
+import { Icon } from "../../shared/ui/Icon";
+import { chevronDownIcon } from "../../shared/ui/icons";
 import { getProviderLogo, providerLogos } from "../../shared/utils/providerIcons";
 import {
   CursorModelEditor,
@@ -71,6 +74,7 @@ function draftInput(draft: CursorModelDraft): ModelInput {
 export function ProvidersPage() {
   const navigate = useNavigate();
   const message = useMessage();
+  const { t } = useI18n();
   const { plugins, models, busy } = useAppStore();
 
   const [draft, setDraft] = useState<CursorModelDraft | null>(null);
@@ -79,6 +83,7 @@ export function ProvidersPage() {
   const [modelOptions, setModelOptions] = useState<string[]>([]);
   const [discovering, setDiscovering] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [customProvidersExpanded, setCustomProvidersExpanded] = useState(false);
 
   const customProviders = useMemo(() => {
     const map = new Map<string, ProviderGroup>();
@@ -295,7 +300,7 @@ export function ProvidersPage() {
         </div>
       </div>
 
-      {/* Custom API Providers */}
+      {/* Custom API Providers (Collapsible Advanced Section - Item 2) */}
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
           <div>
@@ -304,74 +309,128 @@ export function ProvidersPage() {
               {t("providers.connect_deepseek_openrouter_olla")}
             </p>
           </div>
-          <Button size="small" variant="primary" onClick={openNewProvider}>
-            {t("providers.add_custom_api_provider")}
-          </Button>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <button
+              type="button"
+              className={styles.collapsibleToggleBtn}
+              onClick={() => setCustomProvidersExpanded((prev) => !prev)}
+            >
+              <Icon
+                icon={chevronDownIcon}
+                style={{
+                  transform: customProvidersExpanded ? "rotate(180deg)" : "none",
+                  transition: "transform 0.2s ease",
+                }}
+              />
+              <span>
+                {customProvidersExpanded
+                  ? t("models.collapse_details")
+                  : `${customProviders.length} ${t("models.by_provider")}`}
+              </span>
+            </button>
+            <Button size="small" variant="primary" onClick={openNewProvider}>
+              {t("providers.add_custom_api_provider")}
+            </Button>
+          </div>
         </div>
 
-        {customProviders.length === 0 ? (
-          <Card className={styles.emptyCard}>
-            <p>{t("providers.no_custom_api_providers_added_ye")}</p>
-            <div style={{ marginTop: "1rem" }}>
-              <Button size="small" variant="primary" onClick={openNewProvider}>
-                {t("providers.add_custom_api_provider")}
-              </Button>
-            </div>
-          </Card>
-        ) : (
-          <div className={styles.grid}>
-            {customProviders.map((provider) => {
-              const logo = getProviderLogo(provider.name) || getProviderLogo(provider.baseUrl) || (provider.type === "anthropic" ? providerLogos.anthropic : providerLogos.openai);
-              return (
-                <Card key={provider.key} className={styles.card}>
-                  <div className={styles.cardHeader}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      {logo && <img src={logo} alt="" style={{ width: "26px", height: "26px", objectFit: "contain", borderRadius: "6px" }} />}
-                      <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600, color: "#f7f8f8" }}>{provider.name}</h4>
-                    </div>
-                    <span className={styles.badge}>
-                      {provider.type === "anthropic" ? "Anthropic" : "OpenAI"}
-                    </span>
-                  </div>
-                  <p className={styles.metaText}>
-                    {provider.models.length} model:{" "}
-                    {provider.models.map((m) => m.model_id).slice(0, 3).join(", ")}
-                    {provider.models.length > 3 ? "..." : ""}
-                  </p>
-                  <div className={styles.cardActions} style={{ display: "flex", gap: "0.5rem" }}>
-                    <Button
-                      size="small"
-                      variant="primary"
-                      onClick={() => navigate("/models")}
-                    >
-                      {t("cursor.manage_models")}
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="secondary"
-                      onClick={() => openEditForProvider(provider)}
-                    >
-                      {t("common.edit")}
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="secondary"
-                      onClick={() => openAddForProvider(provider)}
-                    >
-                      {t("providers.add_model")}
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="secondary"
-                      onClick={() => setDeletingProvider(provider)}
-                    >
-                      {t("providers.remove")}
-                    </Button>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
+        {customProvidersExpanded && (
+          <>
+            {customProviders.length === 0 ? (
+              <Card className={styles.emptyCard}>
+                <p>{t("providers.no_custom_api_providers_added_ye")}</p>
+                <div style={{ marginTop: "1rem" }}>
+                  <Button size="small" variant="primary" onClick={openNewProvider}>
+                    {t("providers.add_custom_api_provider")}
+                  </Button>
+                </div>
+              </Card>
+            ) : (
+              <div className={styles.grid}>
+                {customProviders.map((provider) => {
+                  const logo =
+                    getProviderLogo(provider.name) ||
+                    getProviderLogo(provider.baseUrl) ||
+                    (provider.type === "anthropic"
+                      ? providerLogos.anthropic
+                      : providerLogos.openai);
+                  return (
+                    <Card key={provider.key} className={styles.card}>
+                      <div className={styles.cardHeader}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "12px",
+                          }}
+                        >
+                          {logo && (
+                            <img
+                              src={logo}
+                              alt=""
+                              style={{
+                                width: "26px",
+                                height: "26px",
+                                objectFit: "contain",
+                                borderRadius: "6px",
+                              }}
+                            />
+                          )}
+                          <h4
+                            style={{
+                              margin: 0,
+                              fontSize: "15px",
+                              fontWeight: 600,
+                              color: "#f7f8f8",
+                            }}
+                          >
+                            {provider.name}
+                          </h4>
+                        </div>
+                        <span className={styles.badge}>
+                          {provider.type === "anthropic" ? "Anthropic" : "OpenAI"}
+                        </span>
+                      </div>
+                      <p className={styles.metaText}>
+                        {provider.models.length} model:{" "}
+                        {provider.models
+                          .map((m) => m.model_id)
+                          .slice(0, 3)
+                          .join(", ")}
+                        {provider.models.length > 3 ? "..." : ""}
+                      </p>
+                      <div
+                        className={styles.cardActions}
+                        style={{ display: "flex", gap: "0.5rem" }}
+                      >
+                        <Button
+                          size="small"
+                          variant="secondary"
+                          onClick={() => openEditForProvider(provider)}
+                        >
+                          {t("common.edit")}
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="secondary"
+                          onClick={() => openAddForProvider(provider)}
+                        >
+                          {t("models.add_model")}
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="secondary"
+                          onClick={() => setDeletingProvider(provider)}
+                        >
+                          {t("common.delete")}
+                        </Button>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
       </div>
 

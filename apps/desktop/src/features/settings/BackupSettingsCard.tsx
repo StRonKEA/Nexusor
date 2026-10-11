@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import { Button } from "../../shared/ui/Button";
 import { TitledCard } from "../../shared/ui/TitledCard";
+import { Icon } from "../../shared/ui/Icon";
+import { checkIcon } from "../../shared/ui/icons";
 import { useMessage } from "../../shared/ui/message";
 import { api } from "../../shared/api";
 import { appStore } from "../../shared/store/appStore";
@@ -84,10 +86,10 @@ export function BackupSettingsCard() {
           </div>
 
           <div className={styles.scopePills}>
-            <span className={styles.scopePill}>✓ {t("settings.backup_scope_accounts")}</span>
-            <span className={styles.scopePill}>✓ {t("settings.backup_scope_models")}</span>
-            <span className={styles.scopePill}>✓ {t("settings.backup_scope_combos")}</span>
-            <span className={styles.scopePill}>✓ {t("settings.backup_scope_settings")}</span>
+            <span className={styles.scopePill}><Icon icon={checkIcon} size="1em" /> {t("settings.backup_scope_accounts")}</span>
+            <span className={styles.scopePill}><Icon icon={checkIcon} size="1em" /> {t("settings.backup_scope_models")}</span>
+            <span className={styles.scopePill}><Icon icon={checkIcon} size="1em" /> {t("settings.backup_scope_combos")}</span>
+            <span className={styles.scopePill}><Icon icon={checkIcon} size="1em" /> {t("settings.backup_scope_settings")}</span>
           </div>
 
           <span className={styles.backupNote}>{t("settings.backup_note")}</span>

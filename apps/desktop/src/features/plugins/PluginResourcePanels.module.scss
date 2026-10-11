@@ -397,6 +397,32 @@
   font-size: type.$font-size-xs;
 }
 
+.methodHeaderTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.methodHeaderLogo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.providerHeaderRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.providerHeaderLogo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
 .error {
   color: var(--vscode-errorForeground, #f48771);
   font-size: type.$font-size-xs;

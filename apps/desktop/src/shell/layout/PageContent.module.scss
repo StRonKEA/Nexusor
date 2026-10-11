@@ -15,10 +15,11 @@
   top: calc(var(--app-content-top) - var(--window-safe-top, 30px));
   left: max(var(--app-page-padding), calc((100% - var(--app-page-max-width)) / 2));
   margin: 0;
-  padding-left:0;
+  padding-left: 0;
   font-size: type.$font-size-xxl;
-  font-weight: bolder;
-  transform: translateY(-150%);
+  font-weight: 700;
+  color: var(--vscode-foreground, #f7f8f8);
+  transform: translateY(-135%);
   pointer-events: auto;
   user-select: none;
   -webkit-user-select: none;
@@ -27,6 +28,7 @@
   -webkit-touch-callout: none;
   -webkit-user-drag: none;
   -webkit-app-region: drag;
+  letter-spacing: -0.01em;
 }
 
 .fixedContent {

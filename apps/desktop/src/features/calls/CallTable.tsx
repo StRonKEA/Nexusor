@@ -62,12 +62,12 @@ export function CallTable({
       key: "display_name",
       header: t("calls.model_name"),
       render: (call) => (
-        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <strong style={{ fontSize: 13, color: "var(--vscode-foreground)" }}>
+        <div className={styles.modelCol}>
+          <strong className={styles.modelName}>
             {call.display_name || call.model_id}
           </strong>
           {call.display_name && call.display_name !== call.model_id && (
-            <small style={{ fontSize: 11, color: "var(--vscode-descriptionForeground)" }}>
+            <small className={styles.modelSub}>
               {call.model_id}
             </small>
           )}
@@ -80,7 +80,7 @@ export function CallTable({
       header: t("calls.time"),
       render: (call) => (
         <TooltipTrigger label={new Date(call.created_at_ms).toLocaleString()}>
-          <span style={{ fontSize: 12, color: "var(--vscode-descriptionForeground)" }}>
+          <span className={styles.timeCol}>
             {formatTime(call.created_at_ms)}
           </span>
         </TooltipTrigger>
@@ -90,7 +90,7 @@ export function CallTable({
       key: "duration",
       header: t("calls.duration"),
       render: (call) => (
-        <span style={{ fontSize: 12, fontFamily: "monospace" }}>
+        <span className={styles.monoCol}>
           {formatDuration(call.duration_ms)}
         </span>
       ),
@@ -102,7 +102,7 @@ export function CallTable({
         <TooltipTrigger
           label={`${t("home.input_non_cached")}: ${call.input_tokens ?? "-"} · ${t("home.model_output")}: ${call.output_tokens ?? "-"}`}
         >
-          <span style={{ fontSize: 12, fontFamily: "monospace" }}>
+          <span className={styles.monoCol}>
             {formatTokens(call.total_tokens, call.input_tokens, call.output_tokens)}
           </span>
         </TooltipTrigger>

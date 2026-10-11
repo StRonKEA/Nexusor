@@ -7,6 +7,7 @@ import { ModelSelect, type ModelSelectOption } from "../../shared/ui/ModelSelect
 import { TitledCard } from "../../shared/ui/TitledCard";
 import { useMessage } from "../../shared/ui/message";
 import { modelProviderName } from "../../shared/utils/modelProvider";
+import { errorText } from "../../shared/utils/errorText";
 import styles from "./CommitSettingsCard.module.scss";
 
 export function CmdKSettingsCard() {
@@ -20,7 +21,7 @@ export function CmdKSettingsCard() {
     let active = true;
     void api.cmdkSettings().then((value) => {
       if (active) { setSaved(value); setDraft(value); }
-    }).catch((error: unknown) => { if (active) message(String(error)); });
+    }).catch((error: unknown) => { if (active) message(errorText(error)); });
     return () => { active = false; };
   }, [message]);
   const options = useMemo(() => {
@@ -42,8 +43,13 @@ export function CmdKSettingsCard() {
   async function save() {
     if (!draft) return;
     setSaving(true);
-    try { const value = await api.setCmdKSettings(draft); setSaved(value); setDraft(value); }
-    catch (error) { message(String(error)); }
+    try {
+      const value = await api.setCmdKSettings(draft);
+      setSaved(value);
+      setDraft(value);
+      message(t("settings.settings_saved"));
+    }
+    catch (error) { message(errorText(error)); }
     finally { setSaving(false); }
   }
   return <TitledCard title="Cursor Ctrl+K / Cmd+K / Tab" action={<div className={styles.actionGroup}>

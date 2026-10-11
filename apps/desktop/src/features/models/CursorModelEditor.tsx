@@ -13,6 +13,8 @@ import { FormField, SecretTextInput, TextInput } from "../../shared/ui/FormContr
 import { JsonEditor } from "../../shared/ui/JsonEditor";
 import { Select } from "../../shared/ui/Select";
 import { Switch } from "../../shared/ui/Switch";
+import { Icon } from "../../shared/ui/Icon";
+import { checkIcon } from "../../shared/ui/icons";
 import { providerLogos } from "../../shared/utils/providerIcons";
 import { CursorPresetChips } from "./CursorPresetChips";
 import styles from "./CursorSettings.module.scss";
@@ -396,7 +398,7 @@ export function CursorModelEditor({
                         .join(" ")}
                       onClick={() => toggleModelId(opt)}
                     >
-                      <span>{active ? "✓" : "+"}</span>
+                      <span>{active ? <Icon icon={checkIcon} size="1em" /> : "+"}</span>
                       <span>{opt}</span>
                     </button>
                   );

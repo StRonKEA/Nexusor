@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import type { LlmCall } from "../../shared/api";
+import { api, type CallDetail, type LlmCall } from "../../shared/api";
 import { CallTable } from "./CallTable";
+import { CallDetails } from "./CallDetails";
 import { PageContent } from "../../shell/layout/PageContent";
 import { appStore, useAppStore } from "../../shared/store/appStore";
 import { Select } from "../../shared/ui/Select";
+import { TextInput } from "../../shared/ui/FormControls";
+import { Button } from "../../shared/ui/Button";
+import { Icon } from "../../shared/ui/Icon";
+import { closeIcon } from "../../shared/ui/icons";
 import styles from "./CallsPage.module.scss";
 
 const CALL_REFRESH_INTERVAL_MS = 2_000;
@@ -19,17 +23,39 @@ function getProviderDisplayName(call: LlmCall): string {
   if (hash.includes("claude_code")) return "Claude Code";
   if (call.provider_type === "openai-chat") return "OpenAI";
   if (call.provider_type === "anthropic") return "Anthropic";
-  if (call.provider_type === "plugin") return "Yerleşik Eklenti";
-  return call.provider_type || "Bilinmeyen";
+  if (call.provider_type === "plugin") return t("calls.builtin_plugin");
+  return call.provider_type || t("calls.unknown");
 }
 
 export function CallsPage() {
   const { calls } = useAppStore();
-  const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState("all");
   const [modelFilter, setModelFilter] = useState("all");
   const [providerFilter, setProviderFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCallId, setSelectedCallId] = useState<string | null>(null);
+  const [selectedDetail, setSelectedDetail] = useState<CallDetail | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!selectedCallId) {
+      setSelectedDetail(null);
+      return;
+    }
+    setLoadingDetail(true);
+    void api.call(selectedCallId).then((data) => {
+      if (!cancelled) {
+        setSelectedDetail(data);
+        setLoadingDetail(false);
+      }
+    }).catch(() => {
+      if (!cancelled) setLoadingDetail(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCallId]);
 
   useEffect(() => {
     let disposed = false;
@@ -90,22 +116,11 @@ export function CallsPage() {
         />
         <Select ariaLabel={t("calls.model")} value={modelFilter} options={modelOptions} onChange={setModelFilter} />
         <Select ariaLabel={t("calls.providers")} value={providerFilter} options={providerOptions} onChange={setProviderFilter} />
-        <input
-          type="text"
-          placeholder="İstek ID veya hata ara..."
+        <TextInput
+          placeholder={t("calls.search_placeholder")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          style={{
-            height: "30px",
-            padding: "0 10px",
-            fontSize: "12px",
-            borderRadius: "6px",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            background: "rgba(255, 255, 255, 0.04)",
-            color: "var(--vscode-foreground)",
-            outline: "none",
-            minWidth: "180px",
-          }}
+          className={styles.searchInput}
         />
       </div>
       <div className={styles.filterMeta}>
@@ -113,10 +128,37 @@ export function CallsPage() {
       </div>
     </div>
     <div className={styles.tableWrap}>
-      <CallTable
-        calls={filtered}
-        onDetails={(call: LlmCall) => navigate(`/calls/${encodeURIComponent(call.call_id)}`)}
-      />
+      <div className={styles.masterDetailLayout}>
+        <div className={styles.masterList}>
+          <CallTable
+            calls={filtered}
+            onDetails={(call: LlmCall) => setSelectedCallId(call.call_id)}
+          />
+        </div>
+        {selectedCallId && (
+          <div className={styles.detailDrawer}>
+            <div className={styles.detailDrawerHeader}>
+              <strong>{selectedDetail?.call.display_name || selectedCallId}</strong>
+              <Button size="small" variant="secondary" onClick={() => setSelectedCallId(null)}>
+                <Icon icon={closeIcon} size="1em" />
+              </Button>
+            </div>
+            <div className={styles.detailDrawerContent}>
+              {loadingDetail ? (
+                <div style={{ padding: 16, color: "var(--vscode-descriptionForeground)" }}>
+                  {t("calls.loading_call_details")}
+                </div>
+              ) : selectedDetail ? (
+                <CallDetails detail={selectedDetail} />
+              ) : (
+                <div style={{ padding: 16, color: "var(--vscode-descriptionForeground)" }}>
+                  {t("calls.unable_to_load_call_details")}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   </div>;
 

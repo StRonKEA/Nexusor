@@ -312,8 +312,8 @@ function OAuthMethodCard({ pluginId, resourceType, method, onConfigured }: {
 
   return <Card className={styles.methodCard}>
     <div className={styles.methodHeader}>
-      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        {logo && <img src={logo} alt="" style={{ width: "32px", height: "32px", objectFit: "contain", borderRadius: "6px" }} />}
+      <div className={styles.methodHeaderTitleRow}>
+        {logo && <img src={logo} alt="" className={styles.methodHeaderLogo} />}
         <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
           <strong>{pluginText(method.displayName, locale)}</strong>
           {method.description && <small>{pluginText(method.description, locale)}</small>}
@@ -458,8 +458,8 @@ function ProviderRow({ provider, busy, syncing, canSync, onManageModels, onSync 
   const { locale } = useI18n();
   const logo = getProviderLogo(provider.id) || getProviderLogo(provider.displayName ? pluginText(provider.displayName, locale) : "");
   return <Card className={styles.providerRow}>
-    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-      {logo && <img src={logo} alt="" style={{ width: "24px", height: "24px", objectFit: "contain", borderRadius: "4px" }} />}
+    <div className={styles.providerHeaderRow}>
+      {logo && <img src={logo} alt="" className={styles.providerHeaderLogo} />}
       <div className={styles.providerInfo}>
         <strong>{pluginText(provider.displayName, locale)}</strong>
         <span>
@@ -608,7 +608,7 @@ function ResourceRow({ pluginId, resourceType, item, actions, canRefresh, disabl
     Boolean(item.state.message?.toLowerCase().includes("exhausted"))
   );
   const statusLabel = isQuotaExhausted
-    ? "Kota Doldu"
+    ? t("plugins.quota_exhausted")
     : item.state.status === "cooling"
       ? t("plugins.cooling_down")
       : item.state.status === "invalid"
@@ -623,7 +623,7 @@ function ResourceRow({ pluginId, resourceType, item, actions, canRefresh, disabl
     try {
       await api.setPluginResourceEnabled(pluginId, resourceType, item.id, enabled);
       await appStore.refreshPlugins();
-      message(enabled ? "Hesap aktif duruma alındı" : "Hesap pasif duruma alındı");
+      message(enabled ? t("plugins.account_enabled_message") : t("plugins.account_disabled_message"));
     } catch (cause) {
       message(errorText(cause));
     } finally {
@@ -687,19 +687,19 @@ function ResourceRow({ pluginId, resourceType, item, actions, canRefresh, disabl
                   : styles.stateInvalid
               }`}
             >
-              {item.state.status === "disabled" ? "Pasif" : statusLabel}
+              {item.state.status === "disabled" ? t("plugins.state_disabled") : statusLabel}
             </span>
           </div>
 
           <div className={styles.headerActions}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ fontSize: 11, color: "#8a8f98" }}>
-                {item.state.status === "disabled" ? "Pasif" : "Aktif"}
+                {item.state.status === "disabled" ? t("plugins.state_disabled") : t("plugins.state_active")}
               </span>
               <Switch
                 checked={item.state.status !== "disabled"}
                 disabled={disabled || actionBusy}
-                label={item.state.status === "disabled" ? "Pasif" : "Aktif"}
+                label={item.state.status === "disabled" ? t("plugins.state_disabled") : t("plugins.state_active")}
                 onChange={(enabled) => void toggleResourceEnabled(enabled)}
               />
             </div>
@@ -757,84 +757,84 @@ function ResourceRow({ pluginId, resourceType, item, actions, canRefresh, disabl
             let fullPeriod = "";
 
             if (m.id === "claude-quota") {
-              label = "Claude (5 Saat)";
-              fullName = "Claude";
-              fullPeriod = "5 Saatlik Oturum Kotası";
+              label = t("plugins.metric_claude_5h");
+              fullName = t("plugins.metric_claude_fullname");
+              fullPeriod = t("plugins.metric_5h_session_quota");
               fillColor = m.value > 20 ? "#D97757" : "#ef4444";
             } else if (m.id === "claude-weekly-quota") {
-              label = "Claude (Hafta)";
-              fullName = "Claude";
-              fullPeriod = "Haftalık Toplam Kota";
+              label = t("plugins.metric_claude_weekly");
+              fullName = t("plugins.metric_claude_fullname");
+              fullPeriod = t("plugins.metric_weekly_total_quota");
               fillColor = m.value > 20 ? "#D97757" : "#ef4444";
             } else if (m.id === "gemini-quota") {
-              label = "Gemini (5 Saat)";
-              fullName = "Gemini";
-              fullPeriod = "5 Saatlik Oturum Kotası";
+              label = t("plugins.metric_gemini_5h");
+              fullName = t("plugins.metric_gemini_fullname");
+              fullPeriod = t("plugins.metric_5h_session_quota");
               fillColor = m.value > 20 ? "#3186FF" : "#ef4444";
             } else if (m.id === "gemini-weekly-quota") {
-              label = "Gemini (Hafta)";
-              fullName = "Gemini";
-              fullPeriod = "Haftalık Toplam Kota";
+              label = t("plugins.metric_gemini_weekly");
+              fullName = t("plugins.metric_gemini_fullname");
+              fullPeriod = t("plugins.metric_weekly_total_quota");
               fillColor = m.value > 20 ? "#3186FF" : "#ef4444";
             } else if (m.id === "primary-quota") {
-              label = "Codex (5 Saat)";
-              fullName = "OpenAI Codex";
-              fullPeriod = "5 Saatlik Oturum Kotası";
+              label = t("plugins.metric_codex_5h");
+              fullName = t("plugins.metric_codex_fullname");
+              fullPeriod = t("plugins.metric_5h_session_quota");
               fillColor = m.value > 20 ? "#10a37f" : "#ef4444";
             } else if (m.id === "secondary-quota") {
-              label = "Codex (Hafta)";
-              fullName = "OpenAI Codex";
-              fullPeriod = "Haftalık Toplam Kota";
+              label = t("plugins.metric_codex_weekly");
+              fullName = t("plugins.metric_codex_fullname");
+              fullPeriod = t("plugins.metric_weekly_total_quota");
               fillColor = m.value > 20 ? "#10a37f" : "#ef4444";
             } else if (m.id === "copilot-status") {
-              label = "Copilot";
-              fullName = "GitHub Copilot";
-              fullPeriod = "Aktif Abonelik";
+              label = t("plugins.metric_copilot_label");
+              fullName = t("plugins.metric_copilot_fullname");
+              fullPeriod = t("plugins.metric_active_subscription");
               fillColor = "#238636";
             } else if (m.id === "credits") {
-              label = "Grok (Hafta)";
-              fullName = "xAI Grok";
-              fullPeriod = "Haftalık Kredi";
+              label = t("plugins.metric_grok_weekly");
+              fullName = t("plugins.metric_grok_fullname");
+              fullPeriod = t("plugins.metric_weekly_credit");
               fillColor = m.value > 20 ? "#e0e0e0" : "#ef4444";
             } else if (m.id === "kimi-5h") {
-              label = "Kimi (5 Saat)";
-              fullName = "Moonshot Kimi";
-              fullPeriod = "5 Saatlik Oturum Kotası";
+              label = t("plugins.metric_kimi_5h");
+              fullName = t("plugins.metric_kimi_fullname");
+              fullPeriod = t("plugins.metric_5h_session_quota");
               fillColor = m.value > 20 ? "#10a37f" : "#ef4444";
             } else if (m.id === "kimi-weekly") {
-              label = "Kimi (Hafta)";
-              fullName = "Moonshot Kimi";
-              fullPeriod = "Haftalık Toplam Kota";
+              label = t("plugins.metric_kimi_weekly");
+              fullName = t("plugins.metric_kimi_fullname");
+              fullPeriod = t("plugins.metric_weekly_total_quota");
               fillColor = m.value > 20 ? "#10a37f" : "#ef4444";
             } else if (m.id === "claude-code-5h") {
-              label = "Claude (5 Saat)";
-              fullName = "Claude Code";
-              fullPeriod = "5 Saatlik Oturum Kotası";
+              label = t("plugins.metric_claude_5h");
+              fullName = t("plugins.metric_claude_code_fullname");
+              fullPeriod = t("plugins.metric_5h_session_quota");
               fillColor = m.value > 20 ? "#D97757" : "#ef4444";
             } else if (m.id === "claude-code-weekly") {
-              label = "Claude (Hafta)";
-              fullName = "Claude Code";
-              fullPeriod = "Haftalık Toplam Kota";
+              label = t("plugins.metric_claude_weekly");
+              fullName = t("plugins.metric_claude_code_fullname");
+              fullPeriod = t("plugins.metric_weekly_total_quota");
               fillColor = m.value > 20 ? "#D97757" : "#ef4444";
             } else if (m.id === "claude-code-sonnet") {
-              label = "Sonnet (Hafta)";
-              fullName = "Claude Code Sonnet";
-              fullPeriod = "Haftalık Özel Kota";
+              label = t("plugins.metric_sonnet_weekly");
+              fullName = t("plugins.metric_claude_code_sonnet_fullname");
+              fullPeriod = t("plugins.metric_weekly_special_quota");
               fillColor = m.value > 20 ? "#D97757" : "#ef4444";
             } else if (m.id === "nvidia-status") {
-              label = "NVIDIA NIM";
-              fullName = "NVIDIA NIM";
-              fullPeriod = "NVIDIA NIM";
+              label = t("plugins.metric_nvidia_nim");
+              fullName = t("plugins.metric_nvidia_nim");
+              fullPeriod = t("plugins.metric_nvidia_nim");
               fillColor = "#74B71B";
             } else if (m.id === "opencode-status") {
-              label = "OpenCode";
-              fullName = "OpenCode";
-              fullPeriod = "OpenCode API";
+              label = t("plugins.metric_opencode_label");
+              fullName = t("plugins.metric_opencode_label");
+              fullPeriod = t("plugins.metric_opencode_api");
               fillColor = "#ffffff";
             } else if (m.id === "groq-status") {
-              label = "Groq LPU";
-              fullName = "Groq";
-              fullPeriod = "Groq LPU";
+              label = t("plugins.metric_groq_lpu");
+              fullName = t("plugins.metric_groq_fullname");
+              fullPeriod = t("plugins.metric_groq_lpu");
               fillColor = "#f55036";
             }
 
@@ -873,16 +873,16 @@ function ResourceRow({ pluginId, resourceType, item, actions, canRefresh, disabl
 
             const percent = Math.round(Math.max(0, Math.min(100, m.value)));
             let tooltip = m.id === "copilot-status"
-              ? "GitHub Copilot: Aktif Abonelik (Sınırsız Kullanım)"
+              ? t("plugins.tooltip_copilot_active")
               : m.id === "nvidia-status"
-              ? "NVIDIA NIM: Aktif"
+              ? t("plugins.tooltip_nvidia_active")
               : m.id === "opencode-status"
-              ? "OpenCode: Aktif"
+              ? t("plugins.tooltip_opencode_active")
               : m.id === "groq-status"
-              ? "Groq: Aktif"
+              ? t("plugins.tooltip_groq_active")
               : fullPeriod
-                ? `${fullName} (${fullPeriod}): %${percent} kalan`
-                : `${fullName}: %${percent}`;
+                ? t("plugins.tooltip_quota_remaining_period", { fullName, fullPeriod, percent })
+                : t("plugins.tooltip_quota_remaining_simple", { fullName, percent });
 
             if (m.unit === "status") {
               return (
@@ -897,7 +897,8 @@ function ResourceRow({ pluginId, resourceType, item, actions, canRefresh, disabl
 
             if (m.resetAtMs) {
               const date = new Date(m.resetAtMs);
-              tooltip += ` · Sıfırlanma: ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+              const formattedTime = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+              tooltip += ` · ${t("plugins.tooltip_reset_time", { time: formattedTime })}`;
             }
 
             return (

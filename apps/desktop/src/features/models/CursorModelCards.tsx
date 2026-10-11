@@ -12,6 +12,7 @@ import {
 } from "../../shared/ui/icons";
 import { getProviderLogo } from "../../shared/utils/providerIcons";
 import { TruncatedButton } from "../../shared/ui/TruncatedButton";
+import { QuotaBadges } from "../../shared/ui/QuotaBadges";
 import { CursorModelTestResult, type CursorModelTestState } from "./CursorModelTestResult";
 import styles from "./CursorSettings.module.scss";
 
@@ -120,137 +121,6 @@ export function CursorModelCards(props: CursorModelCardsProps) {
     ? allAccountGroups.filter((g) => g.accountEmail !== null)
     : allAccountGroups;
 
-  const renderQuotaBadges = (metrics: PluginResourceMetric[]) => {
-    if (!metrics || metrics.length === 0) return null;
-
-    // Önemli metrikleri filtrele: Antigravity, Codex, Copilot, Grok, Kimi, Claude Code
-    const relevant = metrics.filter(
-      (m) =>
-        m.id === "claude-quota" ||
-        m.id === "claude-weekly-quota" ||
-        m.id === "gemini-quota" ||
-        m.id === "gemini-weekly-quota" ||
-        m.id === "primary-quota" ||
-        m.id === "secondary-quota" ||
-        m.id === "copilot-status" ||
-        m.id === "credits" ||
-        m.id === "kimi-5h" ||
-        m.id === "kimi-weekly" ||
-        m.id === "claude-code-5h" ||
-        m.id === "claude-code-weekly" ||
-        m.id === "claude-code-sonnet"
-    );
-
-    if (relevant.length === 0) return null;
-
-    return (
-      <div className={styles.quotaBadgesContainer} data-single={relevant.length <= 2}>
-        {relevant.map((m) => {
-          let badgeLabel = "Kota";
-          let fullName = "Model";
-          let fullPeriod = "Kota";
-          let fillColor = "#3186FF";
-
-          if (m.id === "claude-quota") {
-            badgeLabel = "Claude (5 Saat)";
-            fullName = "Claude";
-            fullPeriod = "5 Saatlik Oturum Kotası";
-            fillColor = m.value > 20 ? "#D97757" : "#ef4444";
-          } else if (m.id === "claude-weekly-quota") {
-            badgeLabel = "Claude (Hafta)";
-            fullName = "Claude";
-            fullPeriod = "Haftalık Toplam Kota";
-            fillColor = m.value > 20 ? "#D97757" : "#ef4444";
-          } else if (m.id === "gemini-quota") {
-            badgeLabel = "Gemini (5 Saat)";
-            fullName = "Gemini";
-            fullPeriod = "5 Saatlik Oturum Kotası";
-            fillColor = m.value > 20 ? "#3186FF" : "#ef4444";
-          } else if (m.id === "gemini-weekly-quota") {
-            badgeLabel = "Gemini (Hafta)";
-            fullName = "Gemini";
-            fullPeriod = "Haftalık Toplam Kota";
-            fillColor = m.value > 20 ? "#3186FF" : "#ef4444";
-          } else if (m.id === "primary-quota") {
-            badgeLabel = "Codex (5 Saat)";
-            fullName = "OpenAI Codex";
-            fullPeriod = "5 Saatlik Oturum Kotası";
-            fillColor = m.value > 20 ? "#10a37f" : "#ef4444";
-          } else if (m.id === "secondary-quota") {
-            badgeLabel = "Codex (Hafta)";
-            fullName = "OpenAI Codex";
-            fullPeriod = "Haftalık Toplam Kota";
-            fillColor = m.value > 20 ? "#10a37f" : "#ef4444";
-          } else if (m.id === "copilot-status") {
-            badgeLabel = "Copilot";
-            fullName = "GitHub Copilot";
-            fullPeriod = "Aktif Abonelik";
-            fillColor = "#238636";
-          } else if (m.id === "credits") {
-            badgeLabel = "Grok (Hafta)";
-            fullName = "xAI Grok";
-            fullPeriod = "Haftalık Kredi";
-            fillColor = m.value > 20 ? "#e0e0e0" : "#ef4444";
-          } else if (m.id === "kimi-5h") {
-            badgeLabel = "Kimi (5 Saat)";
-            fullName = "Moonshot Kimi";
-            fullPeriod = "5 Saatlik Oturum Kotası";
-            fillColor = m.value > 20 ? "#10a37f" : "#ef4444";
-          } else if (m.id === "kimi-weekly") {
-            badgeLabel = "Kimi (Hafta)";
-            fullName = "Moonshot Kimi";
-            fullPeriod = "Haftalık Toplam Kota";
-            fillColor = m.value > 20 ? "#10a37f" : "#ef4444";
-          } else if (m.id === "claude-code-5h") {
-            badgeLabel = "Claude (5 Saat)";
-            fullName = "Claude Code";
-            fullPeriod = "5 Saatlik Oturum Kotası";
-            fillColor = m.value > 20 ? "#D97757" : "#ef4444";
-          } else if (m.id === "claude-code-weekly") {
-            badgeLabel = "Claude (Hafta)";
-            fullName = "Claude Code";
-            fullPeriod = "Haftalık Toplam Kota";
-            fillColor = m.value > 20 ? "#D97757" : "#ef4444";
-          } else if (m.id === "claude-code-sonnet") {
-            badgeLabel = "Sonnet (Hafta)";
-            fullName = "Claude Code Sonnet";
-            fullPeriod = "Haftalık Özel Kota";
-            fillColor = m.value > 20 ? "#D97757" : "#ef4444";
-          }
-
-          const percent = Math.round(Math.max(0, Math.min(100, m.value)));
-          let tooltip = m.id === "copilot-status"
-            ? "GitHub Copilot: Aktif Abonelik (Sınırsız Kullanım)"
-            : `${fullName} (${fullPeriod}): %${percent} kalan`;
-
-          if (m.resetAtMs) {
-            const date = new Date(m.resetAtMs);
-            const now = Date.now();
-            const isFutureDays = m.resetAtMs - now > 86_400_000;
-            const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-            const dateStr = isFutureDays
-              ? `${date.toLocaleDateString([], { month: "short", day: "numeric" })} ${timeStr}`
-              : timeStr;
-            tooltip += ` · Sıfırlanma: ${dateStr}`;
-          }
-
-          return (
-            <div key={m.id} className={styles.quotaItem} title={tooltip}>
-              <span className={styles.quotaLabel}>{badgeLabel}:</span>
-              <div className={styles.quotaTrack}>
-                <div
-                  className={styles.quotaFill}
-                  style={{ width: `${percent}%`, backgroundColor: fillColor }}
-                />
-              </div>
-              <span className={styles.quotaValue}>%{percent}</span>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
   const nativeSection = (
     <div className={styles.sectionBlock}>
       <div className={styles.sectionHeaderRow}>
@@ -273,7 +143,7 @@ export function CursorModelCards(props: CursorModelCardsProps) {
               cursor: "pointer",
             }}
           >
-            Aktif Sağlayıcılar ({allAccountGroups.filter((g) => g.accountEmail !== null).length})
+            {t("models.filter_active_providers", { count: allAccountGroups.filter((g) => g.accountEmail !== null).length })}
           </button>
           <button
             type="button"
@@ -289,7 +159,7 @@ export function CursorModelCards(props: CursorModelCardsProps) {
               cursor: "pointer",
             }}
           >
-            Tüm Sağlayıcılar ({allAccountGroups.length})
+            {t("models.filter_all_providers", { count: allAccountGroups.length })}
           </button>
         </div>
       </div>
@@ -305,7 +175,7 @@ export function CursorModelCards(props: CursorModelCardsProps) {
               label={headerTitle}
               iconSrc={group.iconSrc}
               defaultOpen={false}
-              quotaBadges={renderQuotaBadges(group.metrics)}
+              quotaBadges={<QuotaBadges metrics={group.metrics} singleColumnThreshold={2} />}
             >
               {group.models.map((model) => (
                 <PluginModelRow

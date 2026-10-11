@@ -19,9 +19,9 @@
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  min-height: 320px;
+  min-height: 280px;
   text-align: center;
-  padding: 3rem 2rem;
+  padding: 2.5rem 2rem;
   border-radius: 10px;
   border: 1px dashed rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.02);
@@ -31,27 +31,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.35;
-  color: var(--text-secondary, #8a8f98);
+  opacity: 0.45;
+  color: var(--vscode-descriptionForeground, #8a8f98);
 
   svg {
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
   }
 }
 
 .emptyTitle {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   font-weight: 600;
-  color: #f7f8f8;
+  color: var(--vscode-foreground, #f7f8f8);
 }
 
 .emptyDesc {
   margin: 0;
   font-size: 0.875rem;
-  color: var(--text-secondary, #8a8f98);
-  max-width: 380px;
+  color: var(--vscode-descriptionForeground, #8a8f98);
+  max-width: 420px;
   line-height: 1.6;
 }
 
@@ -635,6 +635,15 @@
 .accountStatus {
   font-size: 0.8rem;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+}
+.statusDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
 }
 .statusReady   { color: #4ade80; }
 .statusCooling { color: #fb923c; }
@@ -1614,3 +1623,96 @@
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 5px;
 }
+
+// ─── Modal Engine Slot Editor ────────────────────────────────────────────────
+.engineModalContent {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.engineModalSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.engineModalSectionTitle {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-secondary, #8a8f98);
+}
+
+.engineModalSlotItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+}
+
+.engineModalAccountList {
+  max-height: 35vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.engineModalAccountGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.engineModalAccountLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #8a8f98);
+}
+
+.engineModalGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.engineModalPickButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  color: #e0e0e0;
+  transition: all 0.12s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  &[data-added="true"] {
+    background: rgba(94, 106, 210, 0.15);
+    border-color: #5e6ad2;
+    color: #7075f5;
+    cursor: default;
+  }
+}
+
+.inlineButtonContent {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+

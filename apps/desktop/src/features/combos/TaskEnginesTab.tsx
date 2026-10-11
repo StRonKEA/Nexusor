@@ -1,13 +1,22 @@
 import { useState } from "react";
 import type { AutoRouterConfig, ComboSlot } from "../../shared/api";
 import type { Account, ModelOption } from "./CombosPage";
+import { useI18n } from "../../i18n/store";
 import { Card } from "../../shared/ui/Card";
 import { Button } from "../../shared/ui/Button";
 import { Switch } from "../../shared/ui/Switch";
 import { Modal } from "../../shared/ui/Modal";
 import { Icon } from "../../shared/ui/Icon";
-import { gearIcon } from "../../shared/ui/icons";
+import {
+  arrowDownIcon,
+  arrowUpIcon,
+  checkIcon,
+  closeIcon,
+  gearIcon,
+  informationOutlineIcon,
+} from "../../shared/ui/icons";
 import { useMessage } from "../../shared/ui/message";
+import { TextInput } from "../../shared/ui/FormControls";
 import styles from "./CombosPage.module.scss";
 
 function isVisionCapable(opt: ModelOption): boolean {
@@ -53,6 +62,7 @@ export function TaskEnginesTab({
   cleanModelName: (modelId: string, accounts: Account[]) => string;
   getSlotAccount: (slot: ComboSlot, accounts: Account[]) => Account | undefined;
 }) {
+  const { t } = useI18n();
   const message = useMessage();
   const [modalTarget, setModalTarget] = useState<"vision" | "subagent" | null>(null);
   const [editingSlots, setEditingSlots] = useState<ComboSlot[]>([]);
@@ -197,7 +207,7 @@ export function TaskEnginesTab({
                       {icon && <img src={icon} alt="" style={{ width: 14, height: 14 }} />}
                       <span style={{ fontSize: 13, color: "var(--vscode-foreground)", fontWeight: 500 }}>{name}</span>
                       {acc && (
-                        <span style={{ fontSize: 11, padding: "2px 6px", background: "rgba(255,255,255,0.05)", borderRadius: 3, color: "#8a8f98" }}>
+                        <span style={{ fontSize: 11, padding: "2px 6px", background: "rgba(255,255,255,0.05)", borderRadius: 3, color: "var(--vscode-descriptionForeground)" }}>
                           {acc.label}
                         </span>
                       )}
@@ -266,7 +276,7 @@ export function TaskEnginesTab({
                       {icon && <img src={icon} alt="" style={{ width: 14, height: 14 }} />}
                       <span style={{ fontSize: 13, color: "var(--vscode-foreground)", fontWeight: 500 }}>{name}</span>
                       {acc && (
-                        <span style={{ fontSize: 11, padding: "2px 6px", background: "rgba(255,255,255,0.05)", borderRadius: 3, color: "#8a8f98" }}>
+                        <span style={{ fontSize: 11, padding: "2px 6px", background: "rgba(255,255,255,0.05)", borderRadius: 3, color: "var(--vscode-descriptionForeground)" }}>
                           {acc.label}
                         </span>
                       )}
@@ -286,14 +296,15 @@ export function TaskEnginesTab({
             <div className={styles.engineTitleRow}>
               <strong>{t("combos.engine_review_title")}</strong>
               <span className={styles.engineStatusBadge}>
-                ✓ {t("combos.engine_review_status_active")}
+                <Icon icon={checkIcon} size="1.1em" /> {t("combos.engine_review_status_active")}
               </span>
             </div>
             <span className={styles.engineDesc}>{t("combos.engine_review_desc")}</span>
           </div>
         </div>
-        <div style={{ fontSize: 12, color: "var(--vscode-descriptionForeground)", fontStyle: "italic", background: "rgba(255,255,255,0.02)", padding: "10px 12px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.05)" }}>
-          ℹ️ {t("combos.engine_review_note")}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--vscode-descriptionForeground)", fontStyle: "italic", background: "rgba(255,255,255,0.02)", padding: "10px 12px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.05)" }}>
+          <Icon icon={informationOutlineIcon} size="1.2em" />
+          <span>{t("combos.engine_review_note")}</span>
         </div>
       </Card>
 
@@ -307,29 +318,35 @@ export function TaskEnginesTab({
           submitLabel={t("common.save")}
           closeLabel={t("common.cancel")}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div className={styles.engineModalContent}>
             {/* Mevcut Seçili Slotlar */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, background: "rgba(255,255,255,0.02)", padding: 10, borderRadius: 6, border: "1px solid rgba(255,255,255,0.06)" }}>
-              <span style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#8a8f98" }}>
+            <div className={styles.engineModalSection}>
+              <span className={styles.engineModalSectionTitle}>
                 {t("combos.engine_priority_order")} ({editingSlots.length})
               </span>
               {editingSlots.length === 0 ? (
-                <span style={{ fontSize: 12, color: "#666" }}>{t("combos.engine_no_models_added")}</span>
+                <span className={styles.emptySlots}>{t("combos.engine_no_models_added")}</span>
               ) : (
                 editingSlots.map((s, idx) => {
                   const name = cleanModelName(s.model_id, accounts);
                   const acc = getSlotAccount(s, accounts);
                   return (
-                    <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 8px", background: "rgba(255,255,255,0.04)", borderRadius: 4 }}>
+                    <div key={idx} className={styles.engineModalSlotItem}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 11, color: "#888" }}>{idx + 1}.</span>
-                        <span style={{ fontSize: 13, color: "#fff", fontWeight: 500 }}>{name}</span>
+                        <span style={{ fontSize: 11, color: "var(--vscode-descriptionForeground)" }}>{idx + 1}.</span>
+                        <span style={{ fontSize: 13, color: "var(--vscode-foreground)", fontWeight: 500 }}>{name}</span>
                         {acc && <span style={{ fontSize: 10, padding: "1px 5px", background: "rgba(255,255,255,0.08)", borderRadius: 2 }}>{acc.label}</span>}
                       </div>
                       <div style={{ display: "flex", gap: 4 }}>
-                        <Button size="small" variant="secondary" disabled={idx === 0} onClick={() => moveSlot(idx, -1)}>↑</Button>
-                        <Button size="small" variant="secondary" disabled={idx === editingSlots.length - 1} onClick={() => moveSlot(idx, 1)}>↓</Button>
-                        <Button size="small" variant="secondary" onClick={() => removeSlot(idx)}>×</Button>
+                        <Button size="small" variant="secondary" disabled={idx === 0} onClick={() => moveSlot(idx, -1)}>
+                          <Icon icon={arrowUpIcon} size="1em" />
+                        </Button>
+                        <Button size="small" variant="secondary" disabled={idx === editingSlots.length - 1} onClick={() => moveSlot(idx, 1)}>
+                          <Icon icon={arrowDownIcon} size="1em" />
+                        </Button>
+                        <Button size="small" variant="secondary" onClick={() => removeSlot(idx)}>
+                          <Icon icon={closeIcon} size="1em" />
+                        </Button>
                       </div>
                     </div>
                   );
@@ -338,15 +355,14 @@ export function TaskEnginesTab({
             </div>
 
             {/* Arama ve Model Seçim Listesi */}
-            <input
-              type="text"
+            <TextInput
               placeholder={t("combos.engine_search_placeholder")}
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
-              style={{ width: "100%", padding: "7px 10px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 5, color: "#fff", fontSize: 12 }}
+              className={styles.searchInput}
             />
 
-            <div style={{ maxHeight: "35vh", overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+            <div className={styles.engineModalAccountList}>
               {accounts.map((acc) => {
                 const filtered = acc.modelOptions.filter((opt: ModelOption) => {
                   if (modalTarget === "vision" && !isVisionCapable(opt)) return false;
@@ -357,9 +373,9 @@ export function TaskEnginesTab({
                 if (filtered.length === 0) return null;
 
                 return (
-                  <div key={acc.id} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "#8a8f98" }}>{acc.label}</span>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                  <div key={acc.id} className={styles.engineModalAccountGroup}>
+                    <span className={styles.engineModalAccountLabel}>{acc.label}</span>
+                    <div className={styles.engineModalGrid}>
                       {filtered.map((opt: ModelOption) => {
                         const isAdded = editingSlots.some((s) => s.model_id === opt.id && s.account_ids?.[0] === opt.accountId);
                         return (
@@ -367,23 +383,12 @@ export function TaskEnginesTab({
                             key={`${opt.accountId}::${opt.id}`}
                             type="button"
                             disabled={isAdded}
+                            data-added={isAdded}
                             onClick={() => addSlot(opt.id, opt.accountId)}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              padding: "6px 10px",
-                              background: isAdded ? "rgba(94,106,210,0.15)" : "rgba(255,255,255,0.03)",
-                              border: isAdded ? "1px solid #5e6ad2" : "1px solid rgba(255,255,255,0.06)",
-                              borderRadius: 4,
-                              color: isAdded ? "#7075f5" : "#e0e0e0",
-                              fontSize: 12,
-                              cursor: isAdded ? "default" : "pointer",
-                              textAlign: "left",
-                            }}
+                            className={styles.engineModalPickButton}
                           >
                             <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{opt.label}</span>
-                            <span>{isAdded ? "✓" : "+"}</span>
+                            <span>{isAdded ? <Icon icon={checkIcon} size="1em" /> : "+"}</span>
                           </button>
                         );
                       })}

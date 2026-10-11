@@ -144,7 +144,13 @@ export const appStore = {
         patch.plugins = pluginsRes.value;
 
         // Check for state transitions (ready <-> cooling) and send desktop notifications
-        ensureNotificationPermission();
+        const notificationsEnabled = typeof localStorage !== "undefined"
+          ? localStorage.getItem("nexusor_quota_notifications_enabled") === "true"
+          : false;
+
+        if (notificationsEnabled) {
+          ensureNotificationPermission();
+        }
         const isFirstLoad = knownAccountStates.size === 0;
 
         for (const p of pluginsRes.value) {
@@ -153,7 +159,7 @@ export const appStore = {
               const currentStatus = item.state.status;
               const prevStatus = knownAccountStates.get(item.id);
 
-              if (!isFirstLoad && prevStatus && prevStatus !== currentStatus) {
+              if (notificationsEnabled && !isFirstLoad && prevStatus && prevStatus !== currentStatus) {
                 if (prevStatus === "ready" && currentStatus === "cooling") {
                   sendDesktopNotification(
                     t("notifications.account_cooling_title", { provider: p.name }),
@@ -173,7 +179,7 @@ export const appStore = {
               const thresholdVal = Number(
                 (typeof localStorage !== "undefined" && localStorage.getItem("nexusor_quota_alert_threshold")) || "15"
               );
-              if (thresholdVal > 0) {
+              if (notificationsEnabled && thresholdVal > 0) {
                 const currentRemaining = extractLowestQuotaPercent(item);
                 const prevRemaining = knownAccountQuotas.get(item.id);
 

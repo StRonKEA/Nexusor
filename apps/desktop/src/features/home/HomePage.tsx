@@ -6,9 +6,10 @@ import { PageContent } from "../../shell/layout/PageContent";
 import { appStore, useAppStore } from "../../shared/store/appStore";
 import { useI18n } from "../../i18n/store";
 import { Icon } from "../../shared/ui/Icon";
-import { checkIcon, clockIcon } from "../../shared/ui/icons";
+import { checkIcon, clockIcon, chevronDownIcon, closeIcon, alertCircleIcon, providerIcon } from "../../shared/ui/icons";
 import { getProviderLogo } from "../../shared/utils/providerIcons";
 import { formatCompactInteger } from "../../shared/utils/numberFormat";
+import { QuotaBadges } from "../../shared/ui/QuotaBadges";
 import styles from "./HomePage.module.scss";
 
 export function HomePage() {
@@ -20,20 +21,25 @@ export function HomePage() {
   const [latestCall, setLatestCall] = useState<LlmCall | null>(null);
 
   // Poll latest call for the live traffic indicator
+  // Combined with the store refresh into a single unified polling cycle.
   useEffect(() => {
     let active = true;
-    const fetchLatest = () => {
+    const refreshAll = () => {
+      if (document.visibilityState !== "visible") return;
+      void appStore.refresh();
       void api.calls().then((res) => {
         if (active && res.length > 0) {
           setLatestCall(res[0]);
         }
       }).catch(() => {});
     };
-    fetchLatest();
-    const timer = setInterval(fetchLatest, 5000);
+    refreshAll();
+    const timer = setInterval(refreshAll, 10_000);
+    window.addEventListener("focus", refreshAll);
     return () => {
       active = false;
       clearInterval(timer);
+      window.removeEventListener("focus", refreshAll);
     };
   }, []);
 
@@ -56,22 +62,6 @@ export function HomePage() {
       active = false;
     };
   }, [overview?.token_usage_series?.length]);
-
-  // Periodic background refresh for HomePage so status & quotas update automatically while user waits.
-  // Skipped while the window is hidden, matching CallsPage: this keeps a hidden panel
-  // from hitting the store every 15 seconds.
-  useEffect(() => {
-    const refresh = () => {
-      if (document.visibilityState === "visible") void appStore.refresh();
-    };
-    refresh();
-    const timer = setInterval(refresh, 15_000);
-    window.addEventListener("focus", refresh);
-    return () => {
-      clearInterval(timer);
-      window.removeEventListener("focus", refresh);
-    };
-  }, []);
 
   const activeOverview = weekOverview ?? overview;
 
@@ -100,12 +90,17 @@ export function HomePage() {
   const coolingAccounts = allAccounts.filter((a) => a.state.status === "cooling");
   const disabledAccounts = allAccounts.filter((a) => a.state.status === "disabled");
 
+  const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<string>>(() => new Set());
+  const [alertsExpanded, setAlertsExpanded] = useState<boolean>(false);
+
   const coolingOrExhaustedItems = useMemo(() => {
     const list: Array<{
       id: string;
+      type: "cooling" | "low_quota";
       provider: string;
       account?: string | null;
       model?: string | null;
+      percent?: number;
       retryAtMs: number | null;
     }> = [];
 
@@ -117,6 +112,7 @@ export function HomePage() {
       if (a.state.status === "cooling") {
         list.push({
           id: a.id,
+          type: "cooling",
           provider: a.pluginName,
           account: a.displayName || null,
           model: null,
@@ -131,9 +127,11 @@ export function HomePage() {
           if (m.value > 0 && m.value <= 15) {
             list.push({
               id: `${a.id}-low-${m.id}`,
+              type: "low_quota",
               provider: a.pluginName,
               account: a.displayName || a.id,
-              model: `Düşük Kota: %${Math.round(m.value)} kaldı (Yedek hesaba hazır)`,
+              model: null,
+              percent: Math.round(m.value),
               retryAtMs: m.resetAtMs ?? null,
             });
           }
@@ -159,6 +157,7 @@ export function HomePage() {
               : (gemini5h?.resetAtMs ?? null);
           list.push({
             id: `${a.id}-gemini`,
+            type: "cooling",
             provider: a.pluginName,
             account: a.displayName || a.id,
             model: "Gemini",
@@ -173,6 +172,7 @@ export function HomePage() {
               : (claude5h?.resetAtMs ?? null);
           list.push({
             id: `${a.id}-claude`,
+            type: "cooling",
             provider: a.pluginName,
             account: a.displayName || a.id,
             model: "Claude",
@@ -187,6 +187,7 @@ export function HomePage() {
         if (credits && credits.value <= 0) {
           list.push({
             id: a.id,
+            type: "cooling",
             provider: a.pluginName,
             account: a.displayName || null,
             model: null,
@@ -202,6 +203,7 @@ export function HomePage() {
         if ((prim && prim.value <= 0) || (sec && sec.value <= 0)) {
           list.push({
             id: a.id,
+            type: "cooling",
             provider: a.pluginName,
             account: a.displayName || null,
             model: null,
@@ -214,43 +216,40 @@ export function HomePage() {
     return list;
   }, [allAccounts]);
 
-  // Live second-by-second countdown for cooling & exhausted accounts
-  useEffect(() => {
-    if (coolingOrExhaustedItems.length === 0) return;
-    const interval = setInterval(() => {
-      setNow(Date.now());
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [coolingOrExhaustedItems.length]);
+  // Filter out alerts explicitly dismissed by the user in this session
+  const activeAlerts = useMemo(() => {
+    return coolingOrExhaustedItems.filter((item) => !dismissedAlertIds.has(item.id));
+  }, [coolingOrExhaustedItems, dismissedAlertIds]);
+
+  const handleDismissAlert = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setDismissedAlertIds((prev) => new Set([...prev, id]));
+  };
+
+  const handleDismissAllAlerts = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDismissedAlertIds(new Set(coolingOrExhaustedItems.map((item) => item.id)));
+  };
 
   const formatRemainingDuration = (retryAtMs?: number | null) => {
-    if (!retryAtMs || retryAtMs <= now) return locale.startsWith("tr") ? "0 saniye" : "0 seconds";
+    if (!retryAtMs || retryAtMs <= now) return t("home.duration_seconds", { seconds: 0 });
     const diffMs = retryAtMs - now;
     const totalSecs = Math.floor(diffMs / 1000);
     const hours = Math.floor(totalSecs / 3600);
     const minutes = Math.floor((totalSecs % 3600) / 60);
     const seconds = totalSecs % 60;
 
-    const isTr = locale.startsWith("tr");
-    const isZh = locale.startsWith("zh");
-    const isPt = locale.startsWith("pt");
-
     if (hours > 0) {
-      if (isTr) return minutes > 0 ? `${hours} saat ${minutes} dakika` : `${hours} saat`;
-      if (isZh) return minutes > 0 ? `${hours} 小时 ${minutes} 分钟` : `${hours} 小时`;
-      if (isPt) return minutes > 0 ? `${hours} horas e ${minutes} minutos` : `${hours} horas`;
-      return minutes > 0 ? `${hours} hours ${minutes} minutes` : `${hours} hours`;
+      return minutes > 0
+        ? t("home.duration_hours_minutes", { hours, minutes })
+        : t("home.duration_hours", { hours });
     }
     if (minutes > 0) {
-      if (isTr) return seconds > 0 ? `${minutes} dakika ${seconds} saniye` : `${minutes} dakika`;
-      if (isZh) return seconds > 0 ? `${minutes} 分钟 ${seconds} 秒` : `${minutes} 分钟`;
-      if (isPt) return seconds > 0 ? `${minutes} minutos e ${seconds} segundos` : `${minutes} minutos`;
-      return seconds > 0 ? `${minutes} minutes ${seconds} seconds` : `${minutes} minutes`;
+      return seconds > 0
+        ? t("home.duration_minutes_seconds", { minutes, seconds })
+        : t("home.duration_minutes", { minutes });
     }
-    if (isTr) return `${seconds} saniye`;
-    if (isZh) return `${seconds} 秒`;
-    if (isPt) return `${seconds} segundos`;
-    return `${seconds} seconds`;
+    return t("home.duration_seconds", { seconds });
   };
 
   // 3. Usage & Metrics
@@ -274,248 +273,290 @@ export function HomePage() {
     }));
   }, [activeOverview]);
 
-  const renderQuotaBadges = (metricsList: PluginResourceMetric[]) => {
-    if (!metricsList || metricsList.length === 0) return null;
-
-    const relevant = metricsList.filter(
-      (m) =>
-        m.id === "claude-quota" ||
-        m.id === "claude-weekly-quota" ||
-        m.id === "gemini-quota" ||
-        m.id === "gemini-weekly-quota" ||
-        m.id === "primary-quota" ||
-        m.id === "secondary-quota" ||
-        m.id === "copilot-status" ||
-        m.id === "credits" ||
-        m.id === "kimi-5h" ||
-        m.id === "kimi-weekly" ||
-        m.id === "claude-code-5h" ||
-        m.id === "claude-code-weekly" ||
-        m.id === "claude-code-sonnet"
-    );
-
-    if (relevant.length === 0) return null;
-
-    return (
-      <div className={styles.quotaBadgesContainer} data-single={relevant.length <= 1}>
-        {relevant.map((m) => {
-          let badgeLabel = "Kota";
-          let fullName = "Model";
-          let fullPeriod = "Kota";
-          let fillColor = "#3186FF";
-
-          if (m.id === "claude-quota") {
-            badgeLabel = "Claude (5 Saat)";
-            fullName = "Claude";
-            fullPeriod = "5 Saatlik Oturum Kotası";
-            fillColor = m.value > 20 ? "#D97757" : "#ef4444";
-          } else if (m.id === "claude-weekly-quota") {
-            badgeLabel = "Claude (Hafta)";
-            fullName = "Claude";
-            fullPeriod = "Haftalık Toplam Kota";
-            fillColor = m.value > 20 ? "#D97757" : "#ef4444";
-          } else if (m.id === "gemini-quota") {
-            badgeLabel = "Gemini (5 Saat)";
-            fullName = "Gemini";
-            fullPeriod = "5 Saatlik Oturum Kotası";
-            fillColor = m.value > 20 ? "#3186FF" : "#ef4444";
-          } else if (m.id === "gemini-weekly-quota") {
-            badgeLabel = "Gemini (Hafta)";
-            fullName = "Gemini";
-            fullPeriod = "Haftalık Toplam Kota";
-            fillColor = m.value > 20 ? "#3186FF" : "#ef4444";
-          } else if (m.id === "primary-quota") {
-            badgeLabel = "Codex (5 Saat)";
-            fullName = "OpenAI Codex";
-            fullPeriod = "5 Saatlik Oturum Kotası";
-            fillColor = m.value > 20 ? "#10a37f" : "#ef4444";
-          } else if (m.id === "secondary-quota") {
-            badgeLabel = "Codex (Hafta)";
-            fullName = "OpenAI Codex";
-            fullPeriod = "Haftalık Toplam Kota";
-            fillColor = m.value > 20 ? "#10a37f" : "#ef4444";
-          } else if (m.id === "copilot-status") {
-            badgeLabel = "Copilot";
-            fullName = "GitHub Copilot";
-            fullPeriod = "Aktif Abonelik";
-            fillColor = "#238636";
-          } else if (m.id === "credits") {
-            badgeLabel = "Grok (Hafta)";
-            fullName = "xAI Grok";
-            fullPeriod = "Haftalık Kredi";
-            fillColor = m.value > 20 ? "#e0e0e0" : "#ef4444";
-          } else if (m.id === "kimi-5h") {
-            badgeLabel = "Kimi (5 Saat)";
-            fullName = "Moonshot Kimi";
-            fullPeriod = "5 Saatlik Oturum Kotası";
-            fillColor = m.value > 20 ? "#10a37f" : "#ef4444";
-          } else if (m.id === "kimi-weekly") {
-            badgeLabel = "Kimi (Hafta)";
-            fullName = "Moonshot Kimi";
-            fullPeriod = "Haftalık Toplam Kota";
-            fillColor = m.value > 20 ? "#10a37f" : "#ef4444";
-          } else if (m.id === "claude-code-5h") {
-            badgeLabel = "Claude (5 Saat)";
-            fullName = "Claude Code";
-            fullPeriod = "5 Saatlik Oturum Kotası";
-            fillColor = m.value > 20 ? "#D97757" : "#ef4444";
-          } else if (m.id === "claude-code-weekly") {
-            badgeLabel = "Claude (Hafta)";
-            fullName = "Claude Code";
-            fullPeriod = "Haftalık Toplam Kota";
-            fillColor = m.value > 20 ? "#D97757" : "#ef4444";
-          } else if (m.id === "claude-code-sonnet") {
-            badgeLabel = "Sonnet (Hafta)";
-            fullName = "Claude Code Sonnet";
-            fullPeriod = "Haftalık Özel Kota";
-            fillColor = m.value > 20 ? "#D97757" : "#ef4444";
-          }
-
-          const percent = Math.round(Math.max(0, Math.min(100, m.value)));
-          let tooltip =
-            m.id === "copilot-status"
-              ? "GitHub Copilot: Aktif Abonelik (Sınırsız Kullanım)"
-              : `${fullName} (${fullPeriod}): %${percent} kalan`;
-
-          if (m.resetAtMs) {
-            const date = new Date(m.resetAtMs);
-            tooltip += ` · Sıfırlanma: ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-          }
-
-          return (
-            <div key={m.id} className={styles.quotaItem} title={tooltip}>
-              <span className={styles.quotaLabel}>{badgeLabel}:</span>
-              <div className={styles.quotaTrack}>
-                <div
-                  className={styles.quotaFill}
-                  style={{ width: `${percent}%`, backgroundColor: fillColor }}
-                />
-              </div>
-              <span className={styles.quotaValue}>%{percent}</span>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
+  // Master Traffic-Light Status Determination
+  const masterState: "ok" | "warn" | "error" = useMemo(() => {
+    if (!isTakenOver || allAccounts.length === 0) return "error";
+    if (coolingAccounts.length > 0 || activeAlerts.length > 0) return "warn";
+    return "ok";
+  }, [isTakenOver, allAccounts.length, coolingAccounts.length, activeAlerts.length]);
 
   const dashboardContent = (
     <div className={styles.dashboard}>
-      {/* ── 1. Hero KPI Grid (3 Balanced, Equal Metric Cards) ── */}
-      <div className={styles.heroGrid3}>
-        {/* Card 1: Token Usage */}
-        <Link to="/calls" className={styles.heroCardKpiLink}>
-          <div className={styles.heroCardKpi}>
-            <div className={styles.heroCardHeader}>
-              <span className={styles.heroCardTitle}>{t("home.usage_metrics_title")}</span>
-              <span className={styles.statusBadgeOk}>Token Hacmi</span>
-            </div>
-            <div className={styles.heroValue}>
-              {formatCompactInteger(netTotal)} Token
-            </div>
-            <div className={styles.heroSplitRow}>
-              <span>{t("home.stat_input")}: <strong className={styles.heroSplitBadge}>{formatCompactInteger(netInput)}</strong></span>
-              <span>·</span>
-              <span>{t("home.stat_output")}: <strong className={styles.heroSplitBadge}>{formatCompactInteger(output)}</strong></span>
-            </div>
+      {/* ── 0. Master Traffic-Light Status Card (Item 1) ── */}
+      <div className={styles.masterStatusCard} data-state={masterState}>
+        <div className={styles.masterStatusLeft}>
+          <div className={styles.masterStatusDot} data-state={masterState} />
+          <div className={styles.masterStatusTextGroup}>
+            <h4 className={styles.masterStatusTitle}>
+              {allAccounts.length === 0
+                ? t("home.status_no_accounts_title")
+                : !isTakenOver
+                ? t("home.status_disconnected_title")
+                : masterState === "warn"
+                ? t("home.status_degraded_title")
+                : t("home.status_all_operational_title")}
+            </h4>
+            <p className={styles.masterStatusDesc}>
+              {allAccounts.length === 0
+                ? t("home.status_no_accounts_desc")
+                : !isTakenOver
+                ? t("home.status_disconnected_desc")
+                : masterState === "warn"
+                ? t("home.status_degraded_desc")
+                : t("home.status_all_operational_desc")}
+            </p>
           </div>
-        </Link>
+        </div>
 
-        {/* Card 2: Cache Savings */}
-        <Link to="/calls" className={styles.heroCardKpiLink}>
-          <div className={styles.heroCardKpi}>
-            <div className={styles.heroCardHeader}>
-              <span className={styles.heroCardTitle}>Önbellek (Cache)</span>
-              <span className={styles.statusBadgeOk}>
-                %{Math.round((cachedTokens / Math.max(1, metrics.prompt_tokens)) * 100)} Oran
-              </span>
-            </div>
-            <div className={styles.heroValue}>
-              {formatCompactInteger(cachedTokens)} Token
-            </div>
-            <div className={styles.cacheMeterBar}>
-              <div
-                className={styles.cacheMeterFill}
-                style={{
-                  width: `${Math.min(
-                    100,
-                    Math.round((cachedTokens / Math.max(1, metrics.prompt_tokens)) * 100)
-                  )}%`,
-                }}
-              />
-            </div>
-            <div className={styles.heroMeta} style={{ marginTop: 6 }}>
-              <span>Toplam {formatCompactInteger(metrics.prompt_tokens)} bağlamın {formatCompactInteger(cachedTokens)} token'ı önbellekten okundu</span>
-            </div>
+        {(!isTakenOver || allAccounts.length === 0) && (
+          <div className={styles.masterStatusAction}>
+            {!isTakenOver ? (
+              <button
+                type="button"
+                className={styles.masterStatusBtn}
+                onClick={() => navigate("/cursor")}
+              >
+                {t("home.btn_repair_cursor")}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className={styles.masterStatusBtn}
+                onClick={() => navigate("/providers")}
+              >
+                {t("home.btn_connect_account")}
+              </button>
+            )}
           </div>
-        </Link>
-
-        {/* Card 3: Calls & Success Rate */}
-        <Link to="/calls" className={styles.heroCardKpiLink}>
-          <div className={styles.heroCardKpi}>
-            <div className={styles.heroCardHeader}>
-              <span className={styles.heroCardTitle}>Çağrı & Sağlık</span>
-              <span className={styles.statusBadgeOk}>%{successRate} Başarı</span>
-            </div>
-            <div className={styles.heroValue}>
-              {t("home.total_calls", { count: totalCalls })}
-            </div>
-            <div className={styles.heroMeta}>
-              {failedCalls > 0 ? (
-                <span style={{ color: "#ef4444", fontWeight: 600 }}>{t("home.errors_count", { count: failedCalls })}</span>
-              ) : (
-                <span style={{ color: "#27c376", fontWeight: 600 }}>{t("home.zero_errors")}</span>
-              )}
-              <span>·</span>
-              <span>Kesintisiz Akış</span>
-            </div>
-          </div>
-        </Link>
+        )}
       </div>
 
-      {/* ── Optional Alert Banners: Live Cooling Down Accounts (One per line) ── */}
-      {coolingOrExhaustedItems.length > 0 && (
+      {/* ── Empty State Onboarding: When no accounts are connected (Item 6) ── */}
+      {allAccounts.length === 0 ? (
+        <div className={styles.onboardingCard}>
+          <div className={styles.onboardingIcon}>
+            <Icon icon={providerIcon} />
+          </div>
+          <h3 className={styles.onboardingTitle}>{t("home.empty_onboarding_title")}</h3>
+          <p className={styles.onboardingDesc}>{t("home.empty_onboarding_desc")}</p>
+          <button
+            type="button"
+            className={styles.onboardingBtn}
+            onClick={() => navigate("/providers")}
+          >
+            {t("home.empty_onboarding_action")}
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* ── 1. Hero KPI Grid (3 Balanced, Equal Metric Cards) ── */}
+          <div className={styles.heroGrid3}>
+            {/* Card 1: Token Usage */}
+            <Link to="/calls" className={styles.heroCardKpiLink}>
+              <div className={styles.heroCardKpi}>
+                <div className={styles.heroCardHeader}>
+                  <span className={styles.heroCardTitle}>{t("home.usage_metrics_title")}</span>
+                  <span className={styles.statusBadgeOk}>{t("home.token_volume")}</span>
+                </div>
+                <div className={styles.heroValue}>
+                  {formatCompactInteger(netTotal)} {t("home.token_unit")}
+                </div>
+                <div className={styles.heroSplitRow}>
+                  <span>{t("home.stat_input")}: <strong className={styles.heroSplitBadge}>{formatCompactInteger(netInput)}</strong></span>
+                  <span>·</span>
+                  <span>{t("home.stat_output")}: <strong className={styles.heroSplitBadge}>{formatCompactInteger(output)}</strong></span>
+                </div>
+              </div>
+            </Link>
+
+            {/* Card 2: Cache Savings */}
+            <Link to="/calls" className={styles.heroCardKpiLink}>
+              <div className={styles.heroCardKpi}>
+                <div className={styles.heroCardHeader}>
+                  <span className={styles.heroCardTitle}>{t("home.cache_title")}</span>
+                  <span className={styles.statusBadgeOk}>
+                    %{Math.round((cachedTokens / Math.max(1, metrics.prompt_tokens)) * 100)} {t("home.cache_rate")}
+                  </span>
+                </div>
+                <div className={styles.heroValue}>
+                  {formatCompactInteger(cachedTokens)} {t("home.token_unit")}
+                </div>
+                <div className={styles.cacheMeterBar}>
+                  <div
+                    className={styles.cacheMeterFill}
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.round((cachedTokens / Math.max(1, metrics.prompt_tokens)) * 100)
+                      )}%`,
+                    }}
+                  />
+                </div>
+                <div className={styles.heroMeta} style={{ marginTop: 6 }}>
+                  <span>{t("home.cache_description", { total: formatCompactInteger(metrics.prompt_tokens), cached: formatCompactInteger(cachedTokens) })}</span>
+                </div>
+              </div>
+            </Link>
+
+            {/* Card 3: Calls & Success Rate */}
+            <Link to="/calls" className={styles.heroCardKpiLink}>
+              <div className={styles.heroCardKpi}>
+                <div className={styles.heroCardHeader}>
+                  <span className={styles.heroCardTitle}>{t("home.calls_health_title")}</span>
+                  <span className={styles.statusBadgeOk}>%{successRate} {t("home.success_label")}</span>
+                </div>
+                <div className={styles.heroValue}>
+                  {t("home.total_calls", { count: totalCalls })}
+                </div>
+                <div className={styles.heroMeta}>
+                  {failedCalls > 0 ? (
+                    <span style={{ color: "#ef4444", fontWeight: 600 }}>{t("home.errors_count", { count: failedCalls })}</span>
+                  ) : (
+                    <span style={{ color: "#27c376", fontWeight: 600 }}>{t("home.zero_errors")}</span>
+                  )}
+                  <span>·</span>
+                  <span>{t("home.continuous_flow")}</span>
+                </div>
+              </div>
+            </Link>
+          </div>
+        </>
+      )}
+
+      {/* ── Optional Alert Banners: Live Cooling Down & Low Quota Accounts ── */}
+      {activeAlerts.length > 0 && (
         <div className={styles.coolingAlertContainer}>
-          {coolingOrExhaustedItems.map((item) => {
-            const remainingStr = formatRemainingDuration(item.retryAtMs);
-            let noticeText = "";
-
-            if (item.account && item.model) {
-              noticeText = t("home.cooling_notice_account_model", {
-                provider: item.provider,
-                account: item.account,
-                model: item.model,
-                remaining: remainingStr,
-              });
-            } else if (item.account) {
-              noticeText = t("home.cooling_notice_account", {
-                provider: item.provider,
-                account: item.account,
-                remaining: remainingStr,
-              });
-            } else {
-              noticeText = t("home.cooling_notice", {
-                provider: item.provider,
-                remaining: remainingStr,
-              });
-            }
-
-            return (
+          {/* If multiple alerts exist, provide a compact collapsible summary banner with dismiss-all */}
+          {activeAlerts.length > 1 && (
+            <div className={styles.alertsSummaryBanner}>
               <div
-                key={item.id}
-                className={styles.coolingAlertBanner}
-                onClick={() => navigate("/models")}
-                title="Modeller sayfasına git"
+                className={styles.alertsSummaryLeft}
+                role="button"
+                tabIndex={0}
+                onClick={() => setAlertsExpanded((prev) => !prev)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    setAlertsExpanded((prev) => !prev);
+                  }
+                }}
               >
                 <div className={styles.coolingAlertIcon}>
                   <Icon icon={clockIcon} />
                 </div>
-                <div className={styles.coolingAlertText}>
-                  {noticeText}
-                </div>
+                <span className={styles.alertsSummaryTitle}>
+                  {t("home.alerts_summary_title", { count: activeAlerts.length })}
+                </span>
               </div>
-            );
-          })}
+              <div className={styles.alertsSummaryActions}>
+                <button
+                  type="button"
+                  className={styles.alertsToggleBtn}
+                  onClick={() => setAlertsExpanded((prev) => !prev)}
+                >
+                  <Icon
+                    icon={chevronDownIcon}
+                    style={{
+                      transform: alertsExpanded ? "rotate(180deg)" : "none",
+                      transition: "transform 0.2s ease",
+                    }}
+                  />
+                  <span>
+                    {alertsExpanded ? t("home.alerts_collapse") : t("home.alerts_show_all")}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={styles.alertsDismissAllBtn}
+                  onClick={handleDismissAllAlerts}
+                  title={t("home.alerts_dismiss_all")}
+                >
+                  <Icon icon={closeIcon} />
+                  <span>{t("home.alerts_dismiss_all")}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Show full list if expanded OR if there is only 1 alert */}
+          {(alertsExpanded || activeAlerts.length === 1) && (
+            <div className={styles.alertsListCollapsible}>
+              {activeAlerts.map((item) => {
+                let noticeText = "";
+
+                if (item.type === "low_quota") {
+                  if (item.account && item.model) {
+                    noticeText = t("home.low_quota_notice_account_model", {
+                      provider: item.provider,
+                      account: item.account,
+                      model: item.model,
+                      percent: item.percent ?? 0,
+                    });
+                  } else if (item.account) {
+                    noticeText = t("home.low_quota_notice_account", {
+                      provider: item.provider,
+                      account: item.account,
+                      percent: item.percent ?? 0,
+                    });
+                  } else {
+                    noticeText = t("home.low_quota_notice_account", {
+                      provider: item.provider,
+                      account: item.provider,
+                      percent: item.percent ?? 0,
+                    });
+                  }
+                } else {
+                  // Cooling state
+                  const remainingStr = formatRemainingDuration(item.retryAtMs);
+                  if (item.account && item.model) {
+                    noticeText = t("home.cooling_notice_account_model", {
+                      provider: item.provider,
+                      account: item.account,
+                      model: item.model,
+                      remaining: remainingStr,
+                    });
+                  } else if (item.account) {
+                    noticeText = t("home.cooling_notice_account", {
+                      provider: item.provider,
+                      account: item.account,
+                      remaining: remainingStr,
+                    });
+                  } else {
+                    noticeText = t("home.cooling_notice", {
+                      provider: item.provider,
+                      remaining: remainingStr,
+                    });
+                  }
+                }
+
+                return (
+                  <div
+                    key={item.id}
+                    className={styles.coolingAlertBanner}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate("/models")}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") navigate("/models");
+                    }}
+                    title={t("home.go_to_models")}
+                  >
+                    <div className={styles.coolingAlertIcon}>
+                      <Icon icon={clockIcon} />
+                    </div>
+                    <div className={styles.coolingAlertText}>{noticeText}</div>
+                    <button
+                      type="button"
+                      className={styles.alertDismissBtn}
+                      onClick={(e) => handleDismissAlert(e, item.id)}
+                      title={t("home.alerts_dismiss")}
+                    >
+                      <Icon icon={closeIcon} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -529,16 +570,19 @@ export function HomePage() {
                 {t("home.connected_accounts_count", { count: allAccounts.length })}
               </span>
               <span className={styles.metaItemReady}>
-                ● {t("home.status_ready_count", { count: readyAccounts.length })}
+                <span className={styles.statusDot} />
+                <span>{t("home.status_ready_count", { count: readyAccounts.length })}</span>
               </span>
               {coolingAccounts.length > 0 && (
                 <span className={styles.metaItemWarn}>
-                  ● {t("home.status_cooling_count", { count: coolingAccounts.length })}
+                  <span className={styles.statusDot} />
+                  <span>{t("home.status_cooling_count", { count: coolingAccounts.length })}</span>
                 </span>
               )}
               {disabledAccounts.length > 0 && (
                 <span className={styles.metaItemDisabled}>
-                  ● {t("home.status_disabled_count", { count: disabledAccounts.length })}
+                  <span className={styles.statusDot} />
+                  <span>{t("home.status_disabled_count", { count: disabledAccounts.length })}</span>
                 </span>
               )}
             </div>
@@ -556,19 +600,22 @@ export function HomePage() {
                   <div
                     key={p.id}
                     className={styles.providerSummaryCard}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => navigate("/models")}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate("/models"); }}
                     style={{ cursor: "pointer" }}
                   >
                     <div className={styles.providerLeft}>
                       {logo && <img src={logo} alt="" className={styles.providerLogo} />}
                       <span className={styles.providerName}>{p.name}</span>
                       <span className={styles.providerAccountsBadge}>
-                        {accounts.length} Hesap
+                        {t("home.accounts_count", { count: accounts.length })}
                       </span>
                     </div>
 
                     <div className={styles.providerRight}>
-                      {firstAccount && renderQuotaBadges(firstAccount.metrics)}
+                      {firstAccount && <QuotaBadges metrics={firstAccount.metrics} />}
                     </div>
                   </div>
                 );
@@ -599,7 +646,7 @@ export function HomePage() {
         <Link
           to="/calls"
           className={styles.liveTrafficBadge}
-          title="Son işlenen model çağrısı (Canlı Trafik)"
+          title={t("home.live_traffic_tooltip")}
         >
           <span
             className={styles.liveTrafficDot}

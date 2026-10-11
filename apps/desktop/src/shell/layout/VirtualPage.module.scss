@@ -28,6 +28,8 @@
   margin: 0;
   padding-left: 0;
   font-size: type.$font-size-xxl;
-  font-weight: bolder;
-  transform: translateY(-150%);
+  font-weight: 700;
+  color: var(--vscode-foreground, #f7f8f8);
+  transform: translateY(-135%);
+  letter-spacing: -0.01em;
 }
