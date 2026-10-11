@@ -74,7 +74,7 @@ function draftInput(draft: CursorModelDraft): ModelInput {
 export function ProvidersPage() {
   const navigate = useNavigate();
   const message = useMessage();
-  const { t } = useI18n();
+  useI18n();
   const { plugins, models, busy } = useAppStore();
 
   const [draft, setDraft] = useState<CursorModelDraft | null>(null);

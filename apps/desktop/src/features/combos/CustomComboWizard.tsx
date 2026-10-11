@@ -50,7 +50,7 @@ export function CustomComboWizard({
   accounts,
   accountGroups,
 }: CustomComboWizardProps) {
-  const { t } = useI18n();
+  useI18n();
   const message = useMessage();
 
   const [step, setStep] = useState<WizardStep>(1);

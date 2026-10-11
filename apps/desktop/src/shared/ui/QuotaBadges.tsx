@@ -34,83 +34,83 @@ export function QuotaBadges({ metrics, singleColumnThreshold = 1 }: QuotaBadgesP
       data-single={relevant.length <= singleColumnThreshold}
     >
       {relevant.map((m) => {
-        let badgeLabel = t("home.badge_quota");
-        let fullName = t("home.badge_model");
-        let fullPeriod = t("home.badge_quota");
+        let badgeLabel = t("models.quota_default_label");
+        let fullName = t("models.quota_default_fullname");
+        let fullPeriod = t("models.quota_default_label");
         let fillColor = "#3186FF";
 
         if (m.id === "claude-quota") {
-          badgeLabel = t("home.badge_claude_5h");
+          badgeLabel = t("models.quota_badge_claude_5h");
           fullName = "Claude";
-          fullPeriod = t("home.badge_period_5h");
+          fullPeriod = t("models.quota_period_5h_session");
           fillColor = m.value > 20 ? "#D97757" : "#ef4444";
         } else if (m.id === "claude-weekly-quota") {
-          badgeLabel = t("home.badge_claude_week");
+          badgeLabel = t("models.quota_badge_claude_weekly");
           fullName = "Claude";
-          fullPeriod = t("home.badge_period_weekly");
+          fullPeriod = t("models.quota_period_weekly_total");
           fillColor = m.value > 20 ? "#D97757" : "#ef4444";
         } else if (m.id === "gemini-quota") {
-          badgeLabel = t("home.badge_gemini_5h");
+          badgeLabel = t("models.quota_badge_gemini_5h");
           fullName = "Gemini";
-          fullPeriod = t("home.badge_period_5h");
+          fullPeriod = t("models.quota_period_5h_session");
           fillColor = m.value > 20 ? "#3186FF" : "#ef4444";
         } else if (m.id === "gemini-weekly-quota") {
-          badgeLabel = t("home.badge_gemini_week");
+          badgeLabel = t("models.quota_badge_gemini_weekly");
           fullName = "Gemini";
-          fullPeriod = t("home.badge_period_weekly");
+          fullPeriod = t("models.quota_period_weekly_total");
           fillColor = m.value > 20 ? "#3186FF" : "#ef4444";
         } else if (m.id === "primary-quota") {
-          badgeLabel = t("home.badge_codex_5h");
+          badgeLabel = t("models.quota_badge_codex_5h");
           fullName = "OpenAI Codex";
-          fullPeriod = t("home.badge_period_5h");
+          fullPeriod = t("models.quota_period_5h_session");
           fillColor = m.value > 20 ? "#10a37f" : "#ef4444";
         } else if (m.id === "secondary-quota") {
-          badgeLabel = t("home.badge_codex_week");
+          badgeLabel = t("models.quota_badge_codex_weekly");
           fullName = "OpenAI Codex";
-          fullPeriod = t("home.badge_period_weekly");
+          fullPeriod = t("models.quota_period_weekly_total");
           fillColor = m.value > 20 ? "#10a37f" : "#ef4444";
         } else if (m.id === "copilot-status") {
           badgeLabel = "Copilot";
           fullName = "GitHub Copilot";
-          fullPeriod = t("home.badge_active_subscription");
+          fullPeriod = t("models.quota_period_active_subscription");
           fillColor = "#238636";
         } else if (m.id === "credits") {
-          badgeLabel = t("home.badge_grok_week");
+          badgeLabel = t("models.quota_badge_grok_weekly");
           fullName = "xAI Grok";
-          fullPeriod = t("home.badge_weekly_credits");
+          fullPeriod = t("models.quota_period_weekly_credits");
           fillColor = m.value > 20 ? "#e0e0e0" : "#ef4444";
         } else if (m.id === "kimi-5h") {
-          badgeLabel = t("home.badge_kimi_5h");
+          badgeLabel = t("models.quota_badge_kimi_5h");
           fullName = "Moonshot Kimi";
-          fullPeriod = t("home.badge_period_5h");
+          fullPeriod = t("models.quota_period_5h_session");
           fillColor = m.value > 20 ? "#10a37f" : "#ef4444";
         } else if (m.id === "kimi-weekly") {
-          badgeLabel = t("home.badge_kimi_week");
+          badgeLabel = t("models.quota_badge_kimi_weekly");
           fullName = "Moonshot Kimi";
-          fullPeriod = t("home.badge_period_weekly");
+          fullPeriod = t("models.quota_period_weekly_total");
           fillColor = m.value > 20 ? "#10a37f" : "#ef4444";
         } else if (m.id === "claude-code-5h") {
-          badgeLabel = t("home.badge_claude_code_5h");
+          badgeLabel = t("models.quota_badge_claude_code_5h");
           fullName = "Claude Code";
-          fullPeriod = t("home.badge_period_5h");
+          fullPeriod = t("models.quota_period_5h_session");
           fillColor = m.value > 20 ? "#D97757" : "#ef4444";
         } else if (m.id === "claude-code-weekly") {
-          badgeLabel = t("home.badge_claude_code_week");
+          badgeLabel = t("models.quota_badge_claude_code_weekly");
           fullName = "Claude Code";
-          fullPeriod = t("home.badge_period_weekly");
+          fullPeriod = t("models.quota_period_weekly_total");
           fillColor = m.value > 20 ? "#D97757" : "#ef4444";
         } else if (m.id === "claude-code-sonnet") {
-          badgeLabel = t("home.badge_claude_sonnet_week");
+          badgeLabel = t("models.quota_badge_sonnet_weekly");
           fullName = "Claude Code Sonnet";
-          fullPeriod = t("home.badge_period_special_weekly");
+          fullPeriod = t("models.quota_period_weekly_special");
           fillColor = m.value > 20 ? "#D97757" : "#ef4444";
         }
 
         const percent = Math.round(Math.max(0, Math.min(100, m.value)));
         let tooltip =
           m.id === "copilot-status"
-            ? `${fullName}: ${t("home.badge_active_subscription")} (${t("home.badge_unlimited_usage")})`
-            : `${fullName} (${fullPeriod}): %${percent} ${t("home.badge_remaining")}`;
+            ? t("models.quota_tooltip_copilot_active")
+            : t("models.quota_tooltip_remaining", { fullName, fullPeriod, percent });
 
         if (m.resetAtMs) {
           const date = new Date(m.resetAtMs);
@@ -120,7 +120,7 @@ export function QuotaBadges({ metrics, singleColumnThreshold = 1 }: QuotaBadgesP
           const dateStr = isFutureDays
             ? `${date.toLocaleDateString([], { month: "short", day: "numeric" })} ${timeStr}`
             : timeStr;
-          tooltip += ` · ${t("home.badge_reset")}: ${dateStr}`;
+          tooltip += ` · ${t("models.quota_tooltip_reset", { dateStr })}`;
         }
 
         return (

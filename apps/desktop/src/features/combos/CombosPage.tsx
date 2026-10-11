@@ -83,7 +83,7 @@ function freshWizard(): WizardState {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function chainStrategyLabel(s: string, t: (key: string, params?: Record<string, unknown>) => string) {
+function chainStrategyLabel(s: string) {
   if (s === "round_robin") return t("combos.chain_round_robin");
   if (s === "fill_first") return t("combos.chain_fill_first");
   if (s === "most_quota") return t("combos.chain_most_quota");
@@ -94,7 +94,7 @@ function chainStrategyLabel(s: string, t: (key: string, params?: Record<string, 
 
 export function CombosPage() {
   const message = useMessage();
-  const { t, locale } = useI18n();
+  const { locale } = useI18n();
   const { models, plugins } = useAppStore();
 
   const [mainTab, setMainTab] = useState<"auto" | "chains" | "engines">("auto");
@@ -443,14 +443,13 @@ export function CombosPage() {
           </div>
 
           {combos.length === 0 ? (
-            <EmptyState onAdd={openCreateCombo} t={t} />
+            <EmptyState onAdd={openCreateCombo} />
           ) : (
             combos.map((combo) => (
               <ComboCard
                 key={combo.combo_id}
                 combo={combo}
                 accounts={accounts}
-                t={t}
                 onEdit={() => openEditCombo(combo)}
                 onDelete={() => setDeletingCombo(combo)}
                 onToggle={() => void handleToggleCombo(combo)}
@@ -528,7 +527,7 @@ export function CombosPage() {
 }
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
-function EmptyState({ onAdd, t }: { onAdd: () => void; t: (key: string) => string }) {
+function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
     <div className={styles.emptyState}>
       <div className={styles.emptyIcon}><Icon icon={emptyHexIcon} size="2.5em" /></div>
@@ -542,10 +541,9 @@ function EmptyState({ onAdd, t }: { onAdd: () => void; t: (key: string) => strin
 }
 
 // ─── Combo card ───────────────────────────────────────────────────────────────
-function ComboCard({ combo, accounts, t, onEdit, onDelete, onToggle }: {
+function ComboCard({ combo, accounts, onEdit, onDelete, onToggle }: {
   combo: RouterCombo;
   accounts: Account[];
-  t: (key: string, params?: Record<string, unknown>) => string;
   onEdit: () => void;
   onDelete: () => void;
   onToggle: () => void;

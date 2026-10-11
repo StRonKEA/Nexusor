@@ -62,7 +62,7 @@ export function TaskEnginesTab({
   cleanModelName: (modelId: string, accounts: Account[]) => string;
   getSlotAccount: (slot: ComboSlot, accounts: Account[]) => Account | undefined;
 }) {
-  const { t } = useI18n();
+  useI18n();
   const message = useMessage();
   const [modalTarget, setModalTarget] = useState<"vision" | "subagent" | null>(null);
   const [editingSlots, setEditingSlots] = useState<ComboSlot[]>([]);

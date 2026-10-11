@@ -37,7 +37,7 @@ export function AutoRouterWizard({
   accounts,
   cleanModelName,
 }: AutoRouterWizardProps) {
-  const { t } = useI18n();
+  useI18n();
   const message = useMessage();
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
