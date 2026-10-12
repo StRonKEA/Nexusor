@@ -214,18 +214,42 @@ pub fn tool_placeholder(name: &str, call_id: &str) -> Result<pb::ToolCall> {
         "shell" | "bash" => Tool::ShellToolCall(pb::ShellToolCall::default()),
         "delete" => Tool::DeleteToolCall(pb::DeleteToolCall::default()),
         "glob" => Tool::GlobToolCall(pb::GlobToolCall::default()),
+        "ls" | "listdir" => Tool::LsToolCall(pb::LsToolCall::default()),
         "grep" => Tool::GrepToolCall(pb::GrepToolCall::default()),
         "read" => Tool::ReadToolCall(pb::ReadToolCall::default()),
         "todowrite" => Tool::UpdateTodosToolCall(pb::UpdateTodosToolCall::default()),
-        "strreplace" | "editnotebook" | "write" => Tool::EditToolCall(pb::EditToolCall::default()),
+        "strreplace" | "editnotebook" | "write" | "applypatch" => {
+            Tool::EditToolCall(pb::EditToolCall::default())
+        }
+        "recordscreen" => Tool::RecordScreenToolCall(pb::RecordScreenToolCall::default()),
+        "setupvminvironment" => Tool::SetupVmEnvironmentToolCall(pb::SetupVmEnvironmentToolCall::default()),
+        "recordciinvestigationfindings" => Tool::RecordCiInvestigationFindingsToolCall(pb::RecordCiInvestigationFindingsToolCall::default()),
+        "reportbugfixresults" => Tool::ReportBugfixResultsToolCall(pb::ReportBugfixResultsToolCall::default()),
+        "replaceenv" => Tool::ReplaceEnvToolCall(pb::ReplaceEnvToolCall::default()),
         "readlints" => Tool::ReadLintsToolCall(pb::ReadLintsToolCall::default()),
-        "callmcptool" | "semblesearch" | "semblefindrelated" => {
-            Tool::McpToolCall(pb::McpToolCall::default())
+        "callmcptool" => Tool::McpToolCall(pb::McpToolCall::default()),
+        "semanticsearch" | "semblesearch" => {
+            Tool::SemSearchToolCall(pb::SemSearchToolCall::default())
         }
         "createplan" => Tool::CreatePlanToolCall(pb::CreatePlanToolCall::default()),
+        "await" => Tool::AwaitToolCall(pb::AwaitToolCall::default()),
+        "sendtouser" => Tool::SendToUserToolCall(pb::SendToUserToolCall::default()),
+        "sendmessage" => Tool::SendMessageToolCall(pb::SendMessageToolCall::default()),
+        "sendfinalsummary" => {
+            Tool::SendFinalSummaryToolCall(pb::SendFinalSummaryToolCall::default())
+        }
+        "reflect" => Tool::ReflectToolCall(pb::ReflectToolCall::default()),
+        "searchconversations" => {
+            Tool::SearchConversationsToolCall(pb::SearchConversationsToolCall::default())
+        }
+        "creategoal" => Tool::CreateGoalToolCall(pb::CreateGoalToolCall::default()),
+        "updategoal" => Tool::UpdateGoalToolCall(pb::UpdateGoalToolCall::default()),
         "websearch" => Tool::WebSearchToolCall(pb::WebSearchToolCall::default()),
         "task" => Tool::TaskToolCall(pb::TaskToolCall::default()),
         "fetchmcpresource" => Tool::ReadMcpResourceToolCall(pb::ReadMcpResourceToolCall::default()),
+        "listmcpresources" => {
+            Tool::ListMcpResourcesToolCall(pb::ListMcpResourcesToolCall::default())
+        }
         "askquestion" => Tool::AskQuestionToolCall(pb::AskQuestionToolCall::default()),
         "webfetch" => Tool::WebFetchToolCall(pb::WebFetchToolCall::default()),
         "switchmode" => Tool::SwitchModeToolCall(pb::SwitchModeToolCall::default()),
@@ -332,6 +356,25 @@ pub fn render_tool_call(call: &ToolCall, completed: bool) -> Result<pb::ToolCall
                 glob_pattern: string("glob_pattern"),
             })
         }
+        Some(pb::tool_call::Tool::LsToolCall(tool)) => {
+            tool.args = Some(pb::LsArgs {
+                path: aliased(&["target_directory", "path", "directory"]),
+                ignore: call
+                    .arguments
+                    .get("ignore_globs")
+                    .and_then(Value::as_array)
+                    .map(|patterns| {
+                        patterns
+                            .iter()
+                            .filter_map(Value::as_str)
+                            .map(str::to_string)
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+                tool_call_id: call.call_id.clone(),
+                ..Default::default()
+            })
+        }
         Some(pb::tool_call::Tool::GrepToolCall(tool)) => {
             tool.args = Some(pb::GrepArgs {
                 pattern: string("pattern"),
@@ -435,33 +478,30 @@ pub fn render_tool_call(call: &ToolCall, completed: bool) -> Result<pb::ToolCall
         }
         Some(pb::tool_call::Tool::McpToolCall(tool)) => {
             tool.description = optional("description");
-            if let Some(tool_name) = semble_tool_name(&call.name) {
-                let mut arguments = call.arguments.as_object().cloned().unwrap_or_default();
-                arguments.remove("description");
-                tool.args = Some(pb::McpArgs {
-                    name: tool_name.into(),
-                    args: codec::json_object_to_prost(&arguments),
-                    tool_call_id: call.call_id.clone(),
-                    provider_identifier: "builtin-semble".into(),
-                    tool_name: tool_name.into(),
-                    server_identifier: "builtin-semble".into(),
-                    ..Default::default()
-                });
-            } else {
-                tool.args = Some(pb::McpArgs {
-                    name: optional("toolName").unwrap_or_default(),
-                    args: call
-                        .arguments
-                        .get("arguments")
-                        .and_then(Value::as_object)
-                        .map(codec::json_object_to_prost)
-                        .unwrap_or_default(),
-                    tool_call_id: call.call_id.clone(),
-                    tool_name: optional("toolName").unwrap_or_default(),
-                    server_identifier: string("server"),
-                    ..Default::default()
-                });
-            }
+            tool.args = Some(pb::McpArgs {
+                name: optional("toolName").unwrap_or_default(),
+                args: call
+                    .arguments
+                    .get("arguments")
+                    .and_then(Value::as_object)
+                    .map(codec::json_object_to_prost)
+                    .unwrap_or_default(),
+                tool_call_id: call.call_id.clone(),
+                tool_name: optional("toolName").unwrap_or_default(),
+                server_identifier: string("server"),
+                ..Default::default()
+            });
+        }
+        Some(pb::tool_call::Tool::SemSearchToolCall(tool)) => {
+            // Cursor renders `SemanticSearch` through its own args shape. Our tool
+            // schema is richer (top_k, content scope), so the extra fields stay in
+            // the model-facing schema and only these three cross the wire.
+            let repo = optional_aliased(&["repo", "target_directories"]);
+            tool.args = Some(pb::SemSearchToolArgs {
+                query: aliased(&["query"]),
+                target_directories: repo.into_iter().collect(),
+                explanation: optional("description").unwrap_or_default(),
+            });
         }
         Some(pb::tool_call::Tool::CreatePlanToolCall(tool)) => {
             tool.args = Some(pb::CreatePlanArgs {
@@ -509,6 +549,66 @@ pub fn render_tool_call(call: &ToolCall, completed: bool) -> Result<pb::ToolCall
                 download_path: optional("downloadPath"),
                 tool_call_id: call.call_id.clone(),
                 smart_mode_approval: None,
+            })
+        }
+        Some(pb::tool_call::Tool::SendToUserToolCall(tool)) => {
+            tool.args = Some(pb::SendToUserArgs {
+                message: aliased(&["message", "text"]),
+            });
+        }
+        Some(pb::tool_call::Tool::SendMessageToolCall(tool)) => {
+            tool.args = Some(pb::SendMessageArgs {
+                message: Some(pb::send_message_args::Message::Text(pb::SendMessageText {
+                    content: aliased(&["message", "text"]),
+                })),
+            });
+        }
+        Some(pb::tool_call::Tool::SendFinalSummaryToolCall(tool)) => {
+            tool.args = Some(pb::SendFinalSummaryArgs {
+                final_summary: Some(aliased(&["final_summary", "summary", "message"])),
+            });
+        }
+        Some(pb::tool_call::Tool::CreateGoalToolCall(tool)) => {
+            tool.args = Some(pb::CreateGoalArgs {
+                objective: aliased(&["objective"]),
+            });
+        }
+        Some(pb::tool_call::Tool::UpdateGoalToolCall(tool)) => {
+            // Only `active` and `complete` reach the wire: Cursor's own schema
+            // rejects anything else, and an unrecognised status must not be
+            // guessed into `active`, which would keep a finished goal running.
+            let requested = aliased(&["status"]);
+            tool.args = Some(pb::UpdateGoalArgs {
+                status: match requested.as_str() {
+                    "complete" => pb::GoalStatus::Complete as i32,
+                    _ => pb::GoalStatus::Active as i32,
+                },
+            });
+        }
+        Some(pb::tool_call::Tool::SearchConversationsToolCall(tool)) => {
+            tool.args = Some(pb::ConversationSearchArgs {
+                query: aliased(&["query"]),
+                tool_call_id: call.call_id.clone(),
+                limit: call
+                    .arguments
+                    .get("limit")
+                    .and_then(Value::as_u64)
+                    .map(|value| value as i32),
+            });
+        }
+        Some(pb::tool_call::Tool::ReflectToolCall(tool)) => {
+            tool.args = Some(pb::ReflectArgs {
+                unexpected_action_outcomes: aliased(&["unexpected_action_outcomes"]),
+                relevant_instructions: aliased(&["relevant_instructions"]),
+                scenario_analysis: aliased(&["scenario_analysis"]),
+                critical_synthesis: aliased(&["critical_synthesis"]),
+                next_steps: aliased(&["next_steps"]),
+                tool_call_id: call.call_id.clone(),
+            });
+        }
+        Some(pb::tool_call::Tool::ListMcpResourcesToolCall(tool)) => {
+            tool.args = Some(pb::ListMcpResourcesExecArgs {
+                server: optional("server"),
             })
         }
         Some(pb::tool_call::Tool::WebFetchToolCall(tool)) => {
@@ -613,14 +713,6 @@ fn normalized(value: &str) -> String {
         .collect()
 }
 
-fn semble_tool_name(name: &str) -> Option<&'static str> {
-    match normalized(name).as_str() {
-        "semblesearch" => Some("search"),
-        "semblefindrelated" => Some("find_related"),
-        _ => None,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::tool_placeholder;
@@ -637,6 +729,52 @@ mod tests {
                 matches!(tool, Some(pb::tool_call::Tool::ShellToolCall(_))),
                 "{name} should render as a Shell tool"
             );
+        }
+    }
+
+    #[test]
+    fn semantic_search_renders_as_its_own_card() {
+        // Regression guard. The audit found this rendered as a generic MCP card
+        // because it was named `SembleSearch`, a name Cursor never sends. It must
+        // draw the dedicated SemSearch card, and the pre-audit name must still
+        // resolve for checkpoints replayed from an older run.
+        for name in ["SemanticSearch", "semblesearch", "semantic_search"] {
+            let tool = tool_placeholder(name, "call-1").unwrap().tool;
+            assert!(
+                matches!(tool, Some(pb::tool_call::Tool::SemSearchToolCall(_))),
+                "{name} should render as a SemSearch card, not an MCP card"
+            );
+        }
+    }
+
+    #[test]
+    fn the_added_tools_render_as_their_cursor_cards() {
+        for (name, expected) in [
+            ("LS", 0),
+            ("list_dir", 0),
+            ("ListMcpResources", 1),
+            ("Await", 2),
+            ("SendToUser", 3),
+            ("SendMessage", 4),
+            ("SendFinalSummary", 5),
+            ("Reflect", 6),
+            ("CreateGoal", 7),
+            ("UpdateGoal", 8),
+        ] {
+            let tool = tool_placeholder(name, "call-1").unwrap().tool;
+            let matches_expected = matches!(
+                (expected, tool),
+                (0, Some(pb::tool_call::Tool::LsToolCall(_)))
+                    | (1, Some(pb::tool_call::Tool::ListMcpResourcesToolCall(_)))
+                    | (2, Some(pb::tool_call::Tool::AwaitToolCall(_)))
+                    | (3, Some(pb::tool_call::Tool::SendToUserToolCall(_)))
+                    | (4, Some(pb::tool_call::Tool::SendMessageToolCall(_)))
+                    | (5, Some(pb::tool_call::Tool::SendFinalSummaryToolCall(_)))
+                    | (6, Some(pb::tool_call::Tool::ReflectToolCall(_)))
+                    | (7, Some(pb::tool_call::Tool::CreateGoalToolCall(_)))
+                    | (8, Some(pb::tool_call::Tool::UpdateGoalToolCall(_)))
+            );
+            assert!(matches_expected, "{name} rendered as the wrong card");
         }
     }
 }

@@ -486,6 +486,20 @@ async fn disabling_subagents_disables_the_task_tool_entirely() {
 }
 
 #[tokio::test]
+async fn only_a_cloud_task_is_refused_as_cloud() {
+    let context = context();
+    let mut cloud = call("t", "Task");
+    cloud.arguments = serde_json::json!({"environment": "cloud"});
+    assert!(context.cloud_task(&cloud));
+
+    let mut local = call("t", "Task");
+    local.arguments = serde_json::json!({"environment": "local"});
+    assert!(!context.cloud_task(&local));
+    assert!(!context.cloud_task(&call("t", "Task")));
+    assert!(!context.cloud_task(&call("s", "Shell")));
+}
+
+#[tokio::test]
 async fn only_task_and_shell_are_controllable() {
     let runtime = CursorToolRuntime::default();
     let context = context();

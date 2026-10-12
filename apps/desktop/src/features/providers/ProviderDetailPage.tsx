@@ -23,14 +23,21 @@ export function ProviderDetailPage() {
   const { locale } = useI18n();
   const plugin = plugins.find((item) => item.id === pluginId) ?? null;
   const hasAccounts = plugin ? plugin.resources.some((r) => r.resources.length > 0) : false;
-  const initialSection = searchParams.get("tab") === "accounts" && hasAccounts ? "accounts" : "add";
+  const tabParam = searchParams.get("tab");
+  const initialSection = tabParam === "add" ? "add" : (hasAccounts ? "accounts" : "add");
   const [section, setSection] = useState<"accounts" | "add">(initialSection);
 
   useEffect(() => {
-    if (!hasAccounts) {
+    if (tabParam === "accounts" && hasAccounts) {
+      setSection("accounts");
+    } else if (tabParam === "add") {
       setSection("add");
+    } else if (!hasAccounts) {
+      setSection("add");
+    } else {
+      setSection("accounts");
     }
-  }, [hasAccounts]);
+  }, [tabParam, hasAccounts]);
 
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);

@@ -47,6 +47,7 @@ async fn finalizing_rejects_late_messages_for_the_next_run() {
             tools: Vec::new(),
         },
         initial_messages: Vec::new(),
+        transcripts_folder: None,
         action: RunAction::Resume {
             pending_tool_round: None,
         },
@@ -109,6 +110,7 @@ async fn break_messages_emits_one_cycle_boundary_before_the_runtime_commit() {
             tools: Vec::new(),
         },
         initial_messages: Vec::new(),
+        transcripts_folder: None,
         action: RunAction::Resume {
             pending_tool_round: None,
         },
@@ -186,6 +188,7 @@ async fn a_replaced_run_cannot_overwrite_its_cancelled_status() {
             tools: Vec::new(),
         },
         initial_messages: Vec::new(),
+        transcripts_folder: None,
         action: RunAction::Resume {
             pending_tool_round: None,
         },

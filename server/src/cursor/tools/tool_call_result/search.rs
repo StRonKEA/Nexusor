@@ -1,5 +1,4 @@
-//! Converts search completions into Tool results.
-//! Cursor MCP-card rendering for direct Semble Agent tools.
+//! Converts `SemanticSearch` completions into Tool results.
 
 use serde_json::Value;
 
@@ -11,68 +10,38 @@ use crate::{
 
 use super::ToolCompletion;
 
-const PROVIDER_IDENTIFIER: &str = "builtin-semble";
-
 pub(crate) fn complete(
     call: &ToolCall,
     started_at_ms: u64,
     output: std::result::Result<Value, String>,
 ) -> Result<ToolCompletion> {
-    use pb::{mcp_tool_result::Result as McpResult, tool_call::Tool};
+    use pb::sem_search_tool_result::Result as SearchResult;
 
-    let (tool_name, fallback_description) = match normalized(&call.name).as_str() {
-        "semblesearch" => ("search", "Search the codebase"),
-        "semblefindrelated" => ("find_related", "Find related code"),
-        _ => (call.name.as_str(), "Search the codebase"),
-    };
     let description = call
         .arguments
         .get("description")
         .and_then(Value::as_str)
         .map(str::trim)
         .filter(|value| !value.is_empty())
-        .unwrap_or(fallback_description)
+        .unwrap_or("Search the codebase")
         .to_owned();
-    let arguments = call
-        .arguments
-        .as_object()
-        .map(|arguments| {
-            let mut arguments = arguments.clone();
-            arguments.remove("description");
-            crate::cursor::tools::codec::json_object_to_prost(&arguments)
-        })
-        .unwrap_or_default();
     let (content, is_error, result) = match output {
         Ok(value) => {
             let content = serde_json::to_string_pretty(&value)?;
-            let structured_content = value.as_object().map(|value| prost_types::Struct {
-                fields: crate::cursor::tools::codec::json_object_to_prost(value)
-                    .into_iter()
-                    .collect(),
-            });
             (
                 content.clone(),
                 false,
-                McpResult::Success(pb::McpSuccess {
-                    content: vec![pb::McpToolResultContentItem {
-                        content: Some(pb::mcp_tool_result_content_item::Content::Text(
-                            pb::McpTextContent {
-                                text: content,
-                                output_location: None,
-                            },
-                        )),
-                    }],
-                    is_error: false,
-                    structured_content,
+                SearchResult::Success(pb::SemSearchToolSuccess {
+                    results: content,
+                    code_results: Vec::new(),
                 }),
             )
         }
         Err(error) => (
             error.clone(),
             true,
-            McpResult::Error(pb::McpToolError {
-                error,
-                read_tool_def_reminder: String::new(),
+            SearchResult::Error(pb::SemSearchToolError {
+                error_message: error,
             }),
         ),
     };
@@ -86,28 +55,23 @@ pub(crate) fn complete(
             image: None,
             images: Vec::new(),
         },
-        Tool::McpToolCall(pb::McpToolCall {
-            args: Some(pb::McpArgs {
-                name: tool_name.into(),
-                args: arguments,
-                tool_call_id: call.call_id.clone(),
-                provider_identifier: PROVIDER_IDENTIFIER.into(),
-                tool_name: tool_name.into(),
-                server_identifier: PROVIDER_IDENTIFIER.into(),
-                ..Default::default()
+        pb::tool_call::Tool::SemSearchToolCall(pb::SemSearchToolCall {
+            args: Some(pb::SemSearchToolArgs {
+                query: string(call, "query"),
+                target_directories: vec![string(call, "repo")],
+                explanation: description,
             }),
-            result: Some(pb::McpToolResult {
+            result: Some(pb::SemSearchToolResult {
                 result: Some(result),
             }),
-            description: Some(description),
         }),
     ))
 }
 
-fn normalized(value: &str) -> String {
-    value
-        .chars()
-        .filter(|character| character.is_ascii_alphanumeric())
-        .flat_map(char::to_lowercase)
-        .collect()
+fn string(call: &ToolCall, name: &str) -> String {
+    call.arguments
+        .get(name)
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string()
 }

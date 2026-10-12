@@ -753,6 +753,7 @@ async fn mid_turn_compaction_keeps_request_before_its_completed_work() {
             Origin::User,
             "Read ledger.txt exactly once, then report its marker.",
         )],
+        transcripts_folder: None,
         action: RunAction::Start,
         base_checkpoint_id,
     };

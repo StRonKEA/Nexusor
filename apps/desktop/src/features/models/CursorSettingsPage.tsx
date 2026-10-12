@@ -261,7 +261,9 @@ export function CursorSettingsPage() {
     onDuplicate={(model) => void duplicateModel(model)}
     onDelete={setDeleting}
     onTestPluginModel={(model) => void testModel({ model_hash: model.id, display_name: model.displayName })}
-    onPluginSettings={(model) => navigate(`/providers/${encodeURIComponent(model.pluginId)}`)}
+    onPluginSettings={(model) =>
+      navigate(`/providers/${encodeURIComponent(model.pluginId)}?tab=accounts`)
+    }
     onReorder={reorderModels}
     onGroupSettings={openGroupSettings}
   />;
@@ -276,21 +278,9 @@ export function CursorSettingsPage() {
 
   const editorTestState = editing ? modelTestResults.get(editing.model_hash) : undefined;
   const editorTesting = Boolean(editing && testingModelHashes.has(editing.model_hash));
-  const activeGroups = grouping === "provider" ? providerGroups : typeGroups;
-  const pluginSectionHeight = pluginModels.length > 0 ? 60 + pluginModels.length * 56 : 0;
-  const estimatedModelHeight = grouping === "flat"
-    ? Math.max(380, Math.ceil(models.length / 3) * 196 + pluginSectionHeight)
-    : Math.max(380, activeGroups.reduce((height, group) => height + 60 + group.models.length * 56, 0) + Math.max(0, activeGroups.length - 1) * 20 + pluginSectionHeight);
+  const estimatedModelHeight = Math.max(480, (pluginModels.length + models.length) * 64 + 140);
 
   return <>
-    <PageActions position="left">
-      <div className={styles.takeoverActions}>
-        <div className={styles.groupActions} role="group" aria-label={t("calls.actions")}>
-          {canGroupByProvider && <button type="button" aria-pressed={grouping === "provider"} onClick={() => setGrouping("provider")}>{t("models.by_provider")}</button>}
-          <button type="button" aria-pressed={grouping === "flat"} onClick={() => setGrouping("flat")}>{t("models.default_layout")}</button>
-        </div>
-      </div>
-    </PageActions>
     <PageActions>
       <button
         type="button"

@@ -84,10 +84,50 @@ impl RunEngine {
         {
             tracing::error!(run_id = %prepared.run_id, %error, "failed to persist Run outcome");
         }
+        self.write_transcript(&prepared).await;
         client.phase.finish();
         let _ = client.events.send(RunEvent::Ended(outcome.clone())).await;
         tracing::info!(outcome = ?outcome, usage = ?usage, "Run ended");
         outcome
+    }
+
+    /// Writes the on-disk transcript Cursor resolves a chat link against.
+    ///
+    /// A failure here must not fail the run: the conversation is already stored
+    /// and the answer already sent, so a problem with the transcript costs the
+    /// ability to *link* the chat, not the chat itself.
+    async fn write_transcript(&self, prepared: &PreparedRun) {
+        let Some(folder) = prepared
+            .transcripts_folder
+            .as_deref()
+            .filter(|folder| !folder.is_empty())
+        else {
+            return;
+        };
+        let conversation_id = prepared.conversation_id.as_str().to_string();
+        let messages = match self
+            .store
+            .load_current_messages(&prepared.conversation_id)
+            .await
+        {
+            Ok(messages) => messages,
+            Err(error) => {
+                tracing::warn!(%conversation_id, %error, "transcript: could not load messages");
+                return;
+            }
+        };
+        match crate::cursor::conversation::transcript::write(
+            folder,
+            conversation_id.as_str(),
+            &messages,
+        ) {
+            Ok(path) => {
+                tracing::info!(%conversation_id, path = %path.display(), "wrote chat transcript");
+            }
+            Err(error) => {
+                tracing::warn!(%conversation_id, %error, "transcript: write failed");
+            }
+        }
     }
 
     async fn run_claimed(

@@ -2,8 +2,11 @@ use serde_json::Value;
 
 use crate::{Error, Result};
 
-pub const CLIENT_ID: &str =
-    concat!("1071006060591", "-tmhssin2h21lcre235vtolojh4g403ep", ".apps.googleusercontent.com");
+pub const CLIENT_ID: &str = concat!(
+    "1071006060591",
+    "-tmhssin2h21lcre235vtolojh4g403ep",
+    ".apps.googleusercontent.com"
+);
 pub const CLIENT_SECRET: &str = concat!("GOCSPX", "-", "K58FWR486LdLJ1mLB8sXC4z6qDAf");
 pub const GOOGLE_AUTHORIZATION_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 pub const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";

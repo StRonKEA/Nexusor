@@ -24,11 +24,11 @@ fn replay_limit(name: &str) -> Option<usize> {
         "GenerateImage" | "WebSearch" => Some(16 * KIB),
         "Read" => Some(64 * KIB),
         "Shell" => Some(128 * KIB),
-        "Grep" | "Glob" => Some(32 * KIB),
+        "Grep" | "Glob" | "LS" => Some(32 * KIB),
         "PatchEdit" | "PatchEditLines" | "PatchEditSpan" | "StrReplace" => Some(4 * KIB),
         "Edit" | "EditNotebook" | "Write" | "WebFetch" => Some(32 * KIB),
         "CallMcpTool" | "FetchMcpResource" | "ListMcpResources" | "GetMcpTools"
-        | "SembleSearch" | "SembleFindRelated" => Some(32 * KIB),
+        | "SemanticSearch" => Some(32 * KIB),
         _ => None,
     }
 }

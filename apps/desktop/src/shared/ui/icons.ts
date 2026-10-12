@@ -192,3 +192,7 @@ export const skipForwardIcon = icon(
   '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 4 10 8-10 8Z"/><line x1="19" x2="19" y1="5" y2="19"/></g>'
 ); // lucide:skip-forward (fill_first semantic)
 
+export const searchIcon = icon(
+  '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></g>'
+); // lucide:search
+

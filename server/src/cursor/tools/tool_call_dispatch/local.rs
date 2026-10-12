@@ -19,3 +19,10 @@ pub(super) fn subagents_disabled(call: &ToolCall) -> Result<ToolStart> {
         completion: Some(result::subagents_disabled(call)?),
     })
 }
+
+pub(super) fn cloud_task_unsupported(call: &ToolCall) -> Result<ToolStart> {
+    Ok(ToolStart {
+        messages: Vec::new(),
+        completion: Some(result::cloud_task_unsupported(call)?),
+    })
+}

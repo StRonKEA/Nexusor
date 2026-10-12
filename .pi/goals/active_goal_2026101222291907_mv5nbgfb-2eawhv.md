@@ -1,0 +1,36 @@
+{
+  "version": 3,
+  "id": "mv5nbgfb-2eawhv",
+  "objective": "tekrar tara bütün dosyaları taradığından emın olana akdar durmak yok bittikten sonra bir tarama daha yapacaksın ve eksik bulamadığın birşey çıakrsa tekrar tarayacaksın ve bu döngüye devame deceksin ancak tekrar yeni birşey bulamazsan duracaksın",
+  "status": "active",
+  "autoContinue": true,
+  "usage": {
+    "tokensUsed": 4337386,
+    "activeSeconds": 3285
+  },
+  "sisyphus": false,
+  "createdAt": "2026-10-12T19:29:19.079Z",
+  "updatedAt": "2026-10-12T20:25:21.663Z",
+  "activePath": ".pi/goals/active_goal_2026101222291907_mv5nbgfb-2eawhv.md",
+  "revision": 163,
+  "scheduler": {
+    "version": 1,
+    "owner": "01a11d16-7aa0-76ba-bff8-bdc28a25dbb5",
+    "generation": "c04a2788-487e-4b95-9cd5-2f6645169354",
+    "used": 1,
+    "phase": "idle",
+    "repairUsed": false
+  }
+}
+
+# Goal Prompt
+
+tekrar tara bütün dosyaları taradığından emın olana akdar durmak yok bittikten sonra bir tarama daha yapacaksın ve eksik bulamadığın birşey çıakrsa tekrar tarayacaksın ve bu döngüye devame deceksin ancak tekrar yeni birşey bulamazsan duracaksın
+
+## Progress
+
+- Status: running
+- Auto-continue: on
+- Sisyphus mode: no
+- Time spent: 54m45s
+- Tokens used: 4.3M (4,337,386) tokens

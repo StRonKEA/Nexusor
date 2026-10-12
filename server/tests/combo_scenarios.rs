@@ -407,6 +407,7 @@ async fn test_subagent_run_does_not_hijack_parent_active_run_id() {
             tools: Vec::new(),
         },
         initial_messages: Vec::new(),
+        transcripts_folder: None,
         action: RunAction::Start,
     };
     store.claim_run(&parent_run).await.unwrap();
@@ -438,6 +439,7 @@ async fn test_subagent_run_does_not_hijack_parent_active_run_id() {
             tools: Vec::new(),
         },
         initial_messages: Vec::new(),
+        transcripts_folder: None,
         action: RunAction::Start,
     };
     store.claim_run(&subagent_run).await.unwrap();
@@ -500,6 +502,7 @@ async fn test_multi_model_review_concurrency_isolation() {
             tools: Vec::new(),
         },
         initial_messages: Vec::new(),
+        transcripts_folder: None,
         action: RunAction::Start,
     };
     store.claim_run(&run_a).await.unwrap();
@@ -517,6 +520,7 @@ async fn test_multi_model_review_concurrency_isolation() {
             tools: Vec::new(),
         },
         initial_messages: Vec::new(),
+        transcripts_folder: None,
         action: RunAction::Start,
     };
     store.claim_run(&run_b).await.unwrap();

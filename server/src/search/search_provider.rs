@@ -1,7 +1,8 @@
-//! Implements the configured external search provider adapter.
+//! Implements the `SemanticSearch` tool adapter over the Semble search engine.
+//! The engine is Cursor's own codebase index; only the wire name is ours.
 use std::sync::Arc;
 
-use semble_core::{ContentType, FindRelatedRequest, SearchEngine, SearchRequest, SembleConfig};
+use semble_core::{ContentType, SearchEngine, SearchRequest, SembleConfig};
 use serde::Deserialize;
 use serde_json::Value;
 use tokio::sync::OnceCell;
@@ -32,41 +33,21 @@ struct SearchArguments {
     content: ContentSelection,
 }
 
-#[derive(Debug, Deserialize)]
-struct FindRelatedArguments {
-    repo: String,
-    file_path: String,
-    line: usize,
-    #[serde(default = "default_top_k")]
-    top_k: usize,
-    #[serde(default = "default_snippet_lines")]
-    max_snippet_lines: Option<usize>,
-    #[serde(default)]
-    content: ContentSelection,
-}
-
-enum Operation {
-    Search(SearchArguments),
-    FindRelated(FindRelatedArguments),
-}
-
 pub(crate) async fn execute(
     tool_name: &str,
     arguments: Value,
     store: Option<Store>,
 ) -> std::result::Result<Value, String> {
-    let operation = match tool_name {
-        "semblesearch" => {
-            Operation::Search(serde_json::from_value(arguments).map_err(|error| error.to_string())?)
-        }
-        "semblefindrelated" => Operation::FindRelated(
-            serde_json::from_value(arguments).map_err(|error| error.to_string())?,
-        ),
-        _ => return Err(format!("unsupported Semble tool: {tool_name}")),
-    };
+    // `semblesearch` is the pre-audit wire name of `SemanticSearch`. It stays as
+    // an alias so tool calls replayed from an older checkpoint still resolve.
+    if tool_name != "semanticsearch" && tool_name != "semblesearch" {
+        return Err(format!("unsupported search tool: {tool_name}"));
+    }
+    let arguments: SearchArguments =
+        serde_json::from_value(arguments).map_err(|error| error.to_string())?;
     let engine = engine(store).await.map_err(|error| error.to_string())?;
-    tokio::task::spawn_blocking(move || match operation {
-        Operation::Search(arguments) => engine
+    tokio::task::spawn_blocking(move || {
+        engine
             .search(SearchRequest {
                 query: arguments.query,
                 repo: arguments.repo.into(),
@@ -74,17 +55,7 @@ pub(crate) async fn execute(
                 max_snippet_lines: arguments.max_snippet_lines,
                 content: content(arguments.content),
             })
-            .and_then(json_value),
-        Operation::FindRelated(arguments) => engine
-            .find_related(FindRelatedRequest {
-                repo: arguments.repo.into(),
-                file_path: arguments.file_path,
-                line: arguments.line,
-                top_k: arguments.top_k,
-                max_snippet_lines: arguments.max_snippet_lines,
-                content: content(arguments.content),
-            })
-            .and_then(json_value),
+            .and_then(json_value)
     })
     .await
     .map_err(|error| format!("Semble search worker failed: {error}"))?

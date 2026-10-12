@@ -48,6 +48,7 @@ pub fn content_type_for_path(path: &Path) -> Option<ContentType> {
             | "makefile"
             | ".gitignore"
             | ".sembleignore"
+            | ".cursorignore"
     ) {
         return Some(ContentType::Config);
     }

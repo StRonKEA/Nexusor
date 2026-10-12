@@ -214,6 +214,16 @@ fn local_stub_status(path: &str, local_account: bool) -> Option<StatusCode> {
         || path.starts_with("/aiserver.v1.ClientLoggerService/")
         || path.starts_with("/aiserver.v1.PerformanceEventService/")
         || path.starts_with("/aiserver.v1.MetricsService/")
+        // Verified leaking before this list existed: each of these reached
+        // api2.cursor.sh and answered 401/404 instead of a local 200. They carry
+        // CPU profiles, trace spans, per-tool-call events and prompt events, so a
+        // local run must never ship them.
+        || path.starts_with("/aiserver.v1.ProfilingService/")
+        || path.starts_with("/aiserver.v1.WebProfilingService/")
+        || path.starts_with("/aiserver.v1.TraceService/")
+        || path.starts_with("/aiserver.v1.ToolCallEventService/")
+        || path.starts_with("/aiserver.v1.ChatRequestEventService/")
+        || path.starts_with("/aiserver.v1.ChatRequestEventV2Service/")
     {
         return Some(StatusCode::OK);
     }
@@ -224,6 +234,11 @@ fn local_stub_status(path: &str, local_account: bool) -> Option<StatusCode> {
     }
     let status = match path {
         "/agent/v1/run" | "/ws-reachability-probe" => StatusCode::NOT_FOUND,
+        // Telemetry uploads that would exfiltrate local runs and file diffs
+        // to Cursor. Answered 200/0 bytes for local sessions only; official
+        // sessions keep the real upstream response.
+        "/agent.v1.AgentService/UploadLocalAgentRunToPromptQuality"
+        | "/aiserver.v1.OnlineMetricsService/ReportAgentSnapshot" => StatusCode::OK,
         "/agent.v1.AgentService/ListLocalSubscriptionTools"
         | "/aiserver.v1.DashboardService/GetTeamCommands"
         | "/aiserver.v1.DashboardService/GetGlobalCommands"
@@ -357,6 +372,57 @@ mod tests {
             assert_eq!(local_stub_status(path, false), None, "{path}");
             assert!(local_stub_status(path, true).is_some(), "{path}");
         }
+    }
+
+    #[test]
+    fn local_telemetry_uploads_are_stubbed_for_local_sessions_only() {
+        // Every local agent run and every post-edit file snapshot must stay
+        // local; official sessions still reach the real upstream service.
+        for path in [
+            "/agent.v1.AgentService/UploadLocalAgentRunToPromptQuality",
+            "/aiserver.v1.OnlineMetricsService/ReportAgentSnapshot",
+        ] {
+            assert_eq!(local_stub_status(path, false), None, "{path}");
+            assert_eq!(
+                local_stub_status(path, true),
+                Some(StatusCode::OK),
+                "{path}"
+            );
+        }
+    }
+
+    /// Regression guard for the audit finding: these six endpoints shipped local
+    /// telemetry to Cursor upstream until they were added to the stub list.
+    #[test]
+    fn every_event_upload_endpoint_is_swallowed_locally() {
+        for path in [
+            "/aiserver.v1.ProfilingService/SubmitProfile",
+            "/aiserver.v1.WebProfilingService/SubmitInteractionWindow",
+            "/aiserver.v1.TraceService/SubmitSpans",
+            "/aiserver.v1.ToolCallEventService/SubmitToolCallEvents",
+            "/aiserver.v1.ChatRequestEventService/SubmitChatRequestEvents",
+            "/aiserver.v1.ChatRequestEventV2Service/SubmitChatRequestEventsV2",
+            "/aiserver.v1.MetricsService/ReportIncrement",
+            "/aiserver.v1.PerformanceEventService/SubmitPerformanceEvents",
+            "/aiserver.v1.CiMetricsService/UpsertInvocation",
+            "/aiserver.v1.ClientLoggerService/GetDebuggingDataUploadUrl",
+            "/aiserver.v1.AnalyticsService/TrackEvents",
+        ] {
+            assert_eq!(
+                local_stub_status(path, false),
+                Some(StatusCode::OK),
+                "{path} would reach Cursor upstream"
+            );
+        }
+    }
+
+    /// Feature discovery must stay reachable even though AnalyticsService is stubbed.
+    #[test]
+    fn statsig_bootstrap_is_not_swallowed() {
+        assert_eq!(
+            local_stub_status("/aiserver.v1.AnalyticsService/BootstrapStatsig", false),
+            None
+        );
     }
 
     #[test]

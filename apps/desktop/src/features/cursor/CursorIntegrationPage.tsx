@@ -208,9 +208,14 @@ export function CursorIntegrationPage() {
             <div className={pageStyles.warningCard}>
               <strong>{t("cursor.no_enabled_models_title")}</strong>
               <span>{t("cursor.no_enabled_models_body")}</span>
-              <Button variant="primary" onClick={() => navigate("/providers")}>
-                {t("cursor.manage_providers")}
-              </Button>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "8px" }}>
+                <Button variant="primary" onClick={() => navigate("/models")}>
+                  {t("home.go_to_models")}
+                </Button>
+                <Button variant="secondary" onClick={() => navigate("/providers")}>
+                  {t("cursor.manage_providers")}
+                </Button>
+              </div>
             </div>
           )}
 

@@ -208,5 +208,6 @@ async fn build_final(
     let settled = builder
         .settled(&messages, mode, &PendingSteps::default())
         .await?;
+    CheckpointBuilder::trace_settled_goal(&settled);
     Ok(FinalCheckpoints { staged, settled })
 }

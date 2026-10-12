@@ -402,6 +402,11 @@ pub(crate) async fn prepare(
             model: model.clone(),
             prompt,
             initial_messages,
+            transcripts_folder: request_context
+                .env
+                .as_ref()
+                .map(|env| env.agent_transcripts_folder.clone())
+                .filter(|folder| !folder.is_empty()),
             action,
             base_checkpoint_id,
         },

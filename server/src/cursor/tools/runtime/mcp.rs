@@ -64,12 +64,10 @@ impl CursorToolRuntime {
             .cloned()
     }
 
-    pub(crate) async fn available_mcp_servers(
-        &self,
-        context: &ExecContext,
-    ) -> Vec<String> {
+    pub(crate) async fn available_mcp_servers(&self, context: &ExecContext) -> Vec<String> {
         let discovery = self.discovered_mcp.lock().await;
-        let mut servers: std::collections::BTreeSet<String> = discovery.servers.keys().cloned().collect();
+        let mut servers: std::collections::BTreeSet<String> =
+            discovery.servers.keys().cloned().collect();
         for (server_id, _) in context.mcp_routes.keys() {
             servers.insert(server_id.clone());
         }

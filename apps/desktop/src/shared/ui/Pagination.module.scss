@@ -25,11 +25,12 @@
 }
 
 .pageSize {
-  width: 92px;
+  min-width: 110px;
+  width: auto;
   margin-right: 4px;
 
   > button {
-    height: 26px;
-    padding: 0 7px;
+    height: 28px;
+    padding: 0 8px;
   }
 }

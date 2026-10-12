@@ -174,6 +174,23 @@ impl ExecContext {
         };
         matches!(selection, Some(SubagentModel::Disabled))
     }
+
+    /// Whether this call asks Cursor to run a Task outside this machine.
+    ///
+    /// A cloud subagent is Cursor's own hosted worker: it needs a Cursor VM, a Cursor
+    /// branch and Cursor-side authorization, none of which exist when the agent loop
+    /// runs on the user's provider accounts. Accepting the call would either hang on
+    /// an environment Nexusor cannot provision, or hand work to a service the user
+    /// has not enabled — so it is refused at the call boundary instead.
+    pub fn cloud_task(&self, call: &ToolCall) -> bool {
+        if !call.name.eq_ignore_ascii_case("Task") {
+            return false;
+        }
+        call.arguments
+            .get("environment")
+            .and_then(serde_json::Value::as_str)
+            .is_some_and(|value| value.trim().eq_ignore_ascii_case("cloud"))
+    }
 }
 
 #[derive(Clone, Default)]

@@ -6,13 +6,14 @@ export interface IconProps {
   src?: string;
   size?: `${number}em`;
   className?: string;
+  style?: import("react").CSSProperties;
 }
 
-export function Icon({ icon, src, size = "1em", className }: IconProps) {
+export function Icon({ icon, src, size = "1em", className, style }: IconProps) {
   return <div
     aria-hidden="true"
     className={[styles.icon, className].filter(Boolean).join(" ")}
-    style={{ height: size, width: size }}
+    style={{ height: size, width: size, ...style }}
   >
     {src ? <img alt="" src={src} /> : icon ? <IconifyIcon height="100%" icon={icon} width="100%" /> : null}
   </div>;

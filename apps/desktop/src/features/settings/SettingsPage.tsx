@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { api, type ProxySettings, type ProxySettingsInput, type StatisticsStorage, type StatisticsStorageScope } from "../../shared/api";
 import { PageContent } from "../../shell/layout/PageContent";
 import { BackupSettingsCard } from "./BackupSettingsCard";
@@ -18,15 +18,17 @@ import { appStore, useAppStore } from "../../shared/store/appStore";
 
 import styles from "./SettingsPage.module.scss";
 
-type SettingsTab = "app" | "connection" | "observability" | "import";
+type SettingsTab = "app" | "cursor" | "connection" | "observability" | "import";
 
 export function SettingsPage() {
-  const { detailed, ports } = useAppStore();
+  const { detailed, ports, cursorHarness } = useAppStore();
   const { preference, locale } = useI18n();
   const message = useMessage();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabs: { id: SettingsTab; label: string }[] = [
     { id: "app", label: t("settings.application") },
+    { id: "cursor", label: t("nav.cursor_integration") },
     { id: "connection", label: t("settings.connection") },
     { id: "observability", label: t("settings.call_observability") },
     { id: "import", label: t("settings.import_export") },
@@ -149,7 +151,75 @@ export function SettingsPage() {
   };
 
   let body: ReactNode = null;
-  if (activeTab === "connection") {
+  if (activeTab === "cursor") {
+    const isTakenOver = cursorHarness?.settings_applied === true;
+    const isCaReady = cursorHarness?.ca === "ready";
+    body = (
+      <>
+        <TitledCard
+          title={t("nav.cursor_integration")}
+          action={
+            <Button
+              variant="primary"
+              size="small"
+              onClick={() => navigate("/cursor")}
+            >
+              {t("common.edit")}
+            </Button>
+          }
+        >
+          <div className={styles.settingRow}>
+            <div>
+              <strong>{t("cursor.takeover_status")}</strong>
+              <small>
+                {isTakenOver
+                  ? t("cursor.taken_over")
+                  : t("cursor.not_taken_over")}
+              </small>
+            </div>
+            <span
+              style={{
+                color: isTakenOver ? "#27c376" : "rgba(255, 255, 255, 0.4)",
+                fontWeight: 600,
+                fontSize: "0.875rem",
+              }}
+            >
+              {isTakenOver ? t("cursor.enabled") : t("cursor.disabled")}
+            </span>
+          </div>
+          <div className={styles.settingRow}>
+            <div>
+              <strong>{t("cursor.ca_status")}</strong>
+              <small>{t("cursor.local_ca_certificate")}</small>
+            </div>
+            <span
+              style={{
+                color: isCaReady ? "#27c376" : "#f59e0b",
+                fontWeight: 600,
+                fontSize: "0.875rem",
+              }}
+            >
+              {isCaReady ? t("cursor.ready") : t("cursor.not_ready")}
+            </span>
+          </div>
+          <div className={styles.settingRow}>
+            <div>
+              <strong>{t("cursor.proxy_address")}</strong>
+              <small>{cursorHarness?.proxy_url || t("cursor.not_generated")}</small>
+            </div>
+          </div>
+          <div className={styles.settingRow} style={{ justifyContent: "flex-start", gap: 12, paddingTop: 16 }}>
+            <Button variant="primary" onClick={() => navigate("/cursor")}>
+              {t("nav.cursor_integration")}
+            </Button>
+            <Button onClick={() => navigate("/models")}>
+              {t("nav.models")}
+            </Button>
+          </div>
+        </TitledCard>
+      </>
+    );
+  } else if (activeTab === "connection") {
     body = <>
       <TitledCard title={t("settings.port_settings")} action={editingPorts ? (
         <div className={styles.cardActions}>

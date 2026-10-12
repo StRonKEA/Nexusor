@@ -6,6 +6,7 @@ pub mod conversation;
 pub mod prompting;
 pub mod protocol;
 pub mod services;
+pub(crate) mod text;
 pub mod tools;
 pub mod transport;
 

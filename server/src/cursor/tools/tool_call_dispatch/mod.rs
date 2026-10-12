@@ -1,9 +1,12 @@
 //! Dispatches Tool calls to their execution adapters.
+mod conversation_search;
 mod edit;
 mod exec;
 mod interaction;
 mod local;
+mod messaging;
 mod search;
+mod wait;
 
 use std::collections::BTreeMap;
 
@@ -52,19 +55,29 @@ pub(super) async fn start(
         return local::subagents_disabled(call);
     }
 
+    if context.cloud_task(call) {
+        return local::cloud_task_unsupported(call);
+    }
+
     let normalized_call = normalize_block_until_ms(call)?;
     let call = normalized_call.as_ref().unwrap_or(call);
 
     match normalized(&call.name).as_str() {
-        "shell" | "bash" | "read" | "delete" | "grep" | "glob" | "readlints" | "task"
-        | "callmcptool" | "fetchmcpresource" | "getmcptools" => {
+        "shell" | "bash" | "read" | "delete" | "grep" | "glob" | "ls" | "readlints" | "task"
+        | "callmcptool" | "fetchmcpresource" | "listmcpresources" | "getmcptools" => {
             exec::start(runtime, call, context).await
         }
-        "write" | "strreplace" | "editnotebook" => edit::start(runtime, call, context).await,
+        "write" | "strreplace" | "editnotebook" | "applypatch" => {
+            edit::start(runtime, call, context).await
+        }
         "askquestion" | "websearch" | "webfetch" | "switchmode" | "createplan"
         | "generateimage" => interaction::start(runtime, call).await,
         "todowrite" | "updatecurrentstep" => local::start(call, message_index),
-        "semblesearch" | "semblefindrelated" => search::start(results, call, store.cloned()),
+        "await" => wait::start(runtime, results, call),
+        "sendtouser" | "sendmessage" | "sendfinalsummary" | "reflect" | "creategoal"
+        | "updategoal" => messaging::start(results, call),
+        "semanticsearch" | "semblesearch" => search::start(results, call, store.cloned()),
+        "searchconversations" => conversation_search::start(results, call, store.cloned()),
         _ => Ok(unavailable_tool(call)),
     }
 }

@@ -1,11 +1,16 @@
 //! Converts completed Tool work into canonical Tool results.
+mod await_tool;
+mod conversation_search;
 mod exec;
 mod gate;
 mod generated_image;
+mod goal_tools;
 mod interaction;
 mod local;
 mod mcp;
 mod mcp_state;
+mod message_tools;
+mod reflect;
 mod search;
 
 use serde_json::Value;
@@ -20,12 +25,17 @@ use crate::{
 
 use super::runtime::now_ms;
 
+pub(crate) use await_tool::wait as await_wait;
+pub(crate) use conversation_search::search_conversations;
 pub(crate) use exec::{edit_failure, from_exec};
 pub(crate) use generated_image::complete_generated_image;
+pub(crate) use goal_tools::{create_goal, update_goal};
 pub(crate) use interaction::{complete_web_fetch, complete_web_search, from_interaction};
-pub(crate) use local::{local, subagents_disabled, todo_items};
+pub(crate) use local::{cloud_task_unsupported, local, subagents_disabled, todo_items};
 pub(crate) use mcp::failure as mcp_failure;
-pub(crate) use search::complete as semble;
+pub(crate) use message_tools::{send_final_summary, send_message, send_to_user};
+pub(crate) use reflect::reflect;
+pub(crate) use search::complete as semantic_search;
 
 #[derive(Clone, Debug)]
 pub struct ToolCompletion {

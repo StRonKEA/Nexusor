@@ -60,22 +60,25 @@ export function AppLayout() {
               </div>
             ) : (
               <div className={styles.navigationRow} key={item.path}>
-                <NavLink to={item.path} end={item.end ?? item.path === "/"}>
+                <NavLink
+                  to={item.path}
+                  end={item.end ?? item.path === "/"}
+                  data-nav-cursor={item.path === "/cursor" ? (cursorHarness?.settings_applied ? "active" : "inactive") : undefined}
+                >
                   {typeof item.icon === "string" ? (
                     <Icon src={item.icon} size="1.3em" />
                   ) : (
                     <Icon icon={item.icon} size="1.3em" />
                   )}
-                  <span>{item.label}</span>
+                  <span className={item.path === "/cursor" && cursorHarness?.settings_applied ? styles.cursorActiveText : undefined}>
+                    {item.label}
+                  </span>
                   {item.path === "/cursor" && cursorHarness && (
                     <span
-                      className={styles.menuStatusTag}
-                      data-taken={cursorHarness.settings_applied || undefined}
-                    >
-                      {cursorHarness.settings_applied
-                        ? t("cursor.taken_over")
-                        : t("cursor.not_taken_over")}
-                    </span>
+                      className={styles.cursorStatusDot}
+                      data-taken={cursorHarness.settings_applied ? "true" : "false"}
+                      title={cursorHarness.settings_applied ? t("cursor.taken_over") : t("cursor.not_taken_over")}
+                    />
                   )}
                 </NavLink>
               </div>

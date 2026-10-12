@@ -3,7 +3,8 @@ import controls from "../../shared/ui/Controls.module.scss";
 import { DataTable, type DataTableColumn } from "../../shared/ui/DataTable";
 import { Icon } from "../../shared/ui/Icon";
 import { TooltipTrigger } from "../../shared/ui/TooltipTrigger";
-import { eyeIcon } from "../../shared/ui/icons";
+import { eyeIcon, providerIcon } from "../../shared/ui/icons";
+import { getProviderLogo } from "../../shared/utils/providerIcons";
 import styles from "./CallTable.module.scss";
 
 const formatDuration = (ms: number | null) => {
@@ -61,18 +62,48 @@ export function CallTable({
     {
       key: "display_name",
       header: t("calls.model_name"),
-      render: (call) => (
-        <div className={styles.modelCol}>
-          <strong className={styles.modelName}>
-            {call.display_name || call.model_id}
-          </strong>
-          {call.display_name && call.display_name !== call.model_id && (
-            <small className={styles.modelSub}>
-              {call.model_id}
-            </small>
-          )}
-        </div>
-      ),
+      render: (call) => {
+        const logo =
+          getProviderLogo(call.model_hash) ||
+          getProviderLogo(call.model_id) ||
+          getProviderLogo(call.provider_type);
+
+        return (
+          <div className={styles.modelCol} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            {logo ? (
+              <img
+                src={logo}
+                alt=""
+                style={{ width: "20px", height: "20px", objectFit: "contain", borderRadius: "4px", flexShrink: 0 }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: "20px",
+                  height: "20px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#8a8f98",
+                  flexShrink: 0,
+                }}
+              >
+                <Icon icon={providerIcon} />
+              </div>
+            )}
+            <div style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0 }}>
+              <strong className={styles.modelName}>
+                {call.display_name || call.model_id}
+              </strong>
+              {call.display_name && call.display_name !== call.model_id && (
+                <small className={styles.modelSub}>
+                  {call.model_id}
+                </small>
+              )}
+            </div>
+          </div>
+        );
+      },
       title: (call) => call.model_id,
     },
     {

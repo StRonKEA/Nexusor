@@ -4,7 +4,7 @@ mod checkpoint;
 mod configuration;
 mod conversation;
 mod inference;
-mod message;
+pub(crate) mod message;
 mod observability;
 mod projection;
 mod run;

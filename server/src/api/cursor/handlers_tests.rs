@@ -447,6 +447,8 @@ async fn online_services_preserve_upstream_responses_with_integration_enabled() 
         "/aiserver.v1.DashboardService/GetGlobalCommands",
         "/aiserver.v1.DashboardService/GetEffectiveUserAgentStoreSkillsSettings",
         "/aiserver.v1.BackgroundComposerService/ListEnvironments",
+        "/aiserver.v1.AiService/RunWebSearch",
+        "/aiserver.v1.AiService/RunWebFetch",
         "/auth/stripe_profile",
         "/auth/full_stripe_profile",
         "/auth/has_valid_payment_method",
@@ -559,7 +561,7 @@ async fn transport_overrides_preserve_cloud_config_and_follow_takeover_setting()
         "hash_used": "none",
         "feature_gates": {
             "nal_websocket_client": {"value": true, "rule_id": "official"},
-            "mcp_tools_enabled": {"value": true}
+            "glass_custom_modes": {"value": true}
         },
         "user": {"userID": "official-user"},
         "dynamic_configs": {"cloud": {"value": 42}}

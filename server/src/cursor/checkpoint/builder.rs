@@ -185,6 +185,7 @@ impl CheckpointBuilder {
         let effective_mode = self.detect_mode_switch(presentation).unwrap_or(mode);
         checkpoint.mode = Some(effective_mode);
         self.base.mode = Some(effective_mode);
+        self.apply_goal_change(&mut checkpoint, presentation);
         checkpoint.communicate_update_states_by_parent_tool_call_id =
             communicate_update_states_by_parent_tool_call_id;
         if let Some(details) = checkpoint.token_details.as_mut() {
@@ -199,6 +200,106 @@ impl CheckpointBuilder {
             )?);
         }
         Ok(checkpoint)
+    }
+
+    /// Carries the long-running goal in the conversation state so Cursor's own
+    /// turn-completion handler can continue the run.
+    ///
+    /// The state is written to `self.base` as well as to the checkpoint being
+    /// built, because the message actually sent to Cursor is the turn's
+    /// `settled` checkpoint, which `worker.rs` rebuilds from `base` with an
+    /// **empty** presentation. Writing only to the staged checkpoint therefore
+    /// dropped the goal before it ever left Nexusor, and the run simply stopped.
+    ///
+    /// `ConversationStateStructure.goal_state` is read back into the agent host's
+    /// runtime when a turn starts, and `willContinueGoalAfterTurn` in the glass
+    /// bundle decides from it whether to open the next turn. Nexusor therefore
+    /// only has to record the state; the continuation itself stays Cursor's.
+    fn apply_goal_change(
+        &mut self,
+        checkpoint: &mut pb::ConversationStateStructure,
+        presentation: &PendingSteps,
+    ) {
+        for step in &presentation.steps {
+            let Some(pb::conversation_step::Message::ToolCall(call)) = step.message.as_ref() else {
+                continue;
+            };
+            match call.tool.as_ref() {
+                Some(pb::tool_call::Tool::CreateGoalToolCall(goal))
+                    if matches!(
+                        goal.result.as_ref().and_then(|r| r.result.as_ref()),
+                        Some(pb::create_goal_result::Result::Success(_))
+                    ) =>
+                {
+                    let objective = goal
+                        .args
+                        .as_ref()
+                        .map(|args| args.objective.clone())
+                        .unwrap_or_default();
+                    if objective.is_empty() {
+                        continue;
+                    }
+                    let goal = pb::GoalState {
+                        conversation_id: String::new(),
+                        goal_id: uuid::Uuid::new_v4().to_string(),
+                        objective,
+                        status: pb::GoalStatus::Active as i32,
+                        idle_continuations_without_tool_calls: 0,
+                        active_duration_ms: None,
+                        last_accrued_at_ms: None,
+                        continuation_count: 0,
+                        agent_session_id: None,
+                    };
+                    self.base.goal_state = Some(goal.clone());
+                    checkpoint.goal_state = Some(goal);
+                }
+                Some(pb::tool_call::Tool::UpdateGoalToolCall(update))
+                    if matches!(
+                        update.result.as_ref().and_then(|r| r.result.as_ref()),
+                        Some(pb::update_goal_result::Result::Success(_))
+                    ) =>
+                {
+                    let status = update
+                        .args
+                        .as_ref()
+                        .map(|args| args.status)
+                        .unwrap_or(pb::GoalStatus::Active as i32);
+                    let current = checkpoint
+                        .goal_state
+                        .as_ref()
+                        .or(self.base.goal_state.as_ref());
+                    let Some(current) = current else {
+                        continue;
+                    };
+                    let mut next = current.clone();
+                    next.status = status;
+                    next.idle_continuations_without_tool_calls = 0;
+                    // Anything other than `active` must stop the loop, so the
+                    // field is dropped rather than kept with a terminal status.
+                    let still_active = status == pb::GoalStatus::Active as i32;
+                    self.base.goal_state = still_active.then_some(next.clone());
+                    checkpoint.goal_state = still_active.then_some(next);
+                }
+                _ => {}
+            }
+        }
+    }
+
+    /// Reports what goal state actually crosses the wire on the settled
+    /// checkpoint, which is the message Cursor reads to decide whether to
+    /// continue a turn.
+    pub(super) fn trace_settled_goal(checkpoint: &pb::ConversationStateStructure) {
+        // No custom target: the binary filters on `cursor_server=info`, so a
+        // target outside that prefix would be silently dropped.
+        match checkpoint.goal_state.as_ref() {
+            Some(goal) => tracing::info!(
+                goal_id = %goal.goal_id,
+                status = goal.status,
+                objective = %goal.objective,
+                "settled checkpoint carries an active goal"
+            ),
+            None => tracing::info!("settled checkpoint carries no goal_state"),
+        }
     }
 
     fn detect_mode_switch(&self, presentation: &PendingSteps) -> Option<i32> {

@@ -23,17 +23,44 @@ const ACCESS_TOKEN_KEY: &str = "cursorAuth/accessToken";
 const PRIVACY_MODE_KEY: &str = "cursorai/donotchange/privacyMode";
 const FEATURE_FLAGS_KEY: &str = "workbench.experiments.featureFlagOverrides";
 
+/// Feature-gate overrides, written as a user preference rather than account data.
+///
+/// `workbench.experiments.featureFlagOverrides` is Cursor's own documented local
+/// override channel, and it is a workspace-level experiment preference - not part
+/// of `cursorAuth`. It is therefore applied even when a real Cursor session is
+/// present, which is what makes the gates below actually take effect for a user
+/// who is signed in. Disable restores the previous value through the same journal
+/// as every other managed key.
+fn feature_flag_overrides() -> String {
+    // Glass `ExperimentService._loadOverridesFromStorage` discards bare booleans
+    // (`has no TTL, discarding`) and only accepts `{value, expiresAt}` objects
+    // (`expiresAt: null` never expires). Every flag below is proven live in
+    // Cursor 3.24.12: present in the `dAe` defaults table AND read through a
+    // gate reader in `workbench.glass.main.js` or a `cursor-*` extension.
+    // Production builds additionally require dev eligibility before applying
+    // any override; the Statsig bootstrap in `analytics.rs` stays the primary
+    // path for normal sessions.
+    json!({
+        "explicit_subagent_models": {"value": true, "expiresAt": null},
+        "subagent_support_interrupt": {"value": true, "expiresAt": null},
+        "opt_devs_into_experimental_model_toggle": {"value": true, "expiresAt": null},
+        "meta_mcp_tool": {"value": true, "expiresAt": null},
+        "mcp_input_schema_json": {"value": true, "expiresAt": null},
+        "local_computer_use": {"value": true, "expiresAt": null},
+        "windows_computer_use_batch": {"value": true, "expiresAt": null},
+        // Gates the turn-completion handler that reopens a turn while a
+        // `CreateGoal` goal is active. Without it `CreateGoal`/`UpdateGoal` would
+        // record a goal that nothing ever continues, which is the dead promise
+        // this catalogue exists to avoid.
+        "agent_goal_continuation": {"value": true, "expiresAt": null}
+    })
+    .to_string()
+}
+
 /// Every key enable writes, and therefore every key disable is able to restore.
 fn managed_values() -> Result<BTreeMap<String, String>> {
     let token = local_token()?;
-    let feature_overrides = json!({
-        "explicit_subagent_models": true,
-        "subagent_support_interrupt": true,
-        "opt_devs_into_experimental_model_toggle": true,
-        "meta_mcp_tool": true,
-        "mcp_input_schema_json": true
-    })
-    .to_string();
+    let feature_overrides = feature_flag_overrides();
     Ok(BTreeMap::from([
         (ACCESS_TOKEN_KEY.to_string(), token.clone()),
         ("cursorAuth/refreshToken".to_string(), token),
@@ -195,7 +222,6 @@ fn state_db_path() -> Result<PathBuf> {
 }
 
 async fn inject_if_missing_at(path: &Path) -> Result<()> {
-    let applied = managed_values()?;
     if let Some(parent) = path.parent() {
         tokio::fs::create_dir_all(parent).await?;
     }
@@ -209,7 +235,16 @@ async fn inject_if_missing_at(path: &Path) -> Result<()> {
     .execute(&mut connection)
     .await?;
 
+    // A real Cursor session means this is the user's own account, not ours to
+    // rewrite: `cursorAuth/*` and the privacy keys stay untouched. The
+    // feature-gate override is a workspace preference rather than account data,
+    // so it is still applied - otherwise every gate below would silently never
+    // reach a signed-in user.
+    let mut applied = managed_values()?;
     if has_foreign_session(&mut connection).await? {
+        applied.retain(|key, _| key == FEATURE_FLAGS_KEY);
+    }
+    if applied.is_empty() {
         return Ok(());
     }
 
@@ -242,7 +277,13 @@ async fn inject_if_missing_at(path: &Path) -> Result<()> {
             applied: BTreeMap::new(),
         }
     };
-    record.applied = applied.clone();
+    // Merge rather than replace. A run that only writes the gate overrides - for
+    // example because a real Cursor session now owns `cursorAuth` - must not drop
+    // the record of an account an earlier run injected, or disable would leave
+    // those keys stuck at the injected values with nothing left to restore from.
+    for (key, value) in &applied {
+        record.applied.insert(key.clone(), value.clone());
+    }
     write_journal(&journal, &record)?;
 
     let mut transaction = connection.begin().await?;
@@ -254,11 +295,18 @@ async fn inject_if_missing_at(path: &Path) -> Result<()> {
             .await?;
     }
     transaction.commit().await?;
-    tracing::info!(
-        email = EMAIL,
-        subject = SUBJECT,
-        "injected local Cursor account"
-    );
+    if applied.len() == 1 {
+        tracing::info!(
+            key = FEATURE_FLAGS_KEY,
+            "applied feature-gate overrides alongside an existing Cursor session"
+        );
+    } else {
+        tracing::info!(
+            email = EMAIL,
+            subject = SUBJECT,
+            "injected local Cursor account"
+        );
+    }
     Ok(())
 }
 
@@ -331,6 +379,115 @@ mod tests {
                 .await
                 .unwrap();
         assert_eq!(after, before);
+    }
+
+    /// Regression guard for the audit finding: with a real Cursor session the
+    /// account keys must stay untouched, but the gate overrides are a workspace
+    /// preference and must still be written, otherwise every gate in
+    /// `feature_flag_overrides` silently never reaches a signed-in user.
+    #[tokio::test]
+    async fn gate_overrides_reach_a_real_session_while_account_keys_do_not() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("state.vscdb");
+        let options = sqlx::sqlite::SqliteConnectOptions::new()
+            .filename(&path)
+            .create_if_missing(true);
+        let mut connection = SqliteConnection::connect_with(&options).await.unwrap();
+        sqlx::query("CREATE TABLE ItemTable (key TEXT PRIMARY KEY, value BLOB)")
+            .execute(&mut connection)
+            .await
+            .unwrap();
+        for (key, value) in [
+            ("cursorAuth/accessToken", "real-test-session"),
+            ("cursorAuth/cachedEmail", "real@example.com"),
+            ("cursorAuth/stripeMembershipType", "free"),
+        ] {
+            sqlx::query("INSERT INTO ItemTable VALUES (?, ?)")
+                .bind(key)
+                .bind(value)
+                .execute(&mut connection)
+                .await
+                .unwrap();
+        }
+        drop(connection);
+
+        inject_if_missing_at(&path).await.unwrap();
+
+        let mut connection = SqliteConnection::connect_with(&options).await.unwrap();
+        for (key, expected) in [
+            ("cursorAuth/accessToken", "real-test-session"),
+            ("cursorAuth/cachedEmail", "real@example.com"),
+            ("cursorAuth/stripeMembershipType", "free"),
+        ] {
+            let actual: Option<String> =
+                sqlx::query_scalar("SELECT CAST(value AS TEXT) FROM ItemTable WHERE key = ?")
+                    .bind(key)
+                    .fetch_one(&mut connection)
+                    .await
+                    .unwrap();
+            assert_eq!(actual.as_deref(), Some(expected), "{key} was rewritten");
+        }
+        let overrides: String =
+            sqlx::query_scalar("SELECT CAST(value AS TEXT) FROM ItemTable WHERE key = ?")
+                .bind(FEATURE_FLAGS_KEY)
+                .fetch_one(&mut connection)
+                .await
+                .unwrap();
+        for gate in [
+            "explicit_subagent_models",
+            "subagent_support_interrupt",
+            "opt_devs_into_experimental_model_toggle",
+            "meta_mcp_tool",
+            "mcp_input_schema_json",
+        ] {
+            assert!(overrides.contains(gate), "{gate} missing from overrides");
+        }
+    }
+
+    /// A run that writes only the gate overrides must not erase the restoration
+    /// record of an account an earlier run injected. Losing it would strand those
+    /// keys at the injected values forever, because disable restores only what
+    /// the record still lists.
+    #[tokio::test]
+    async fn a_gate_only_run_keeps_an_earlier_account_record() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("state.vscdb");
+        let options = sqlx::sqlite::SqliteConnectOptions::new()
+            .filename(&path)
+            .create_if_missing(true);
+        let mut connection = SqliteConnection::connect_with(&options).await.unwrap();
+        sqlx::query("CREATE TABLE ItemTable (key TEXT PRIMARY KEY, value BLOB)")
+            .execute(&mut connection)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO ItemTable VALUES (?, ?)")
+            .bind(ACCESS_TOKEN_KEY)
+            .bind("real-test-session")
+            .execute(&mut connection)
+            .await
+            .unwrap();
+        drop(connection);
+
+        // An earlier run recorded an account injection with nothing set before it.
+        let journal = journal_path(&path);
+        let managed = managed_values().unwrap();
+        let record = ManagedAccount {
+            previous: managed.keys().map(|key| (key.clone(), None)).collect(),
+            applied: managed.clone(),
+        };
+        write_journal(&journal, &record).unwrap();
+
+        // This run sees a real session and writes only the gate overrides.
+        inject_if_missing_at(&path).await.unwrap();
+
+        let restored: ManagedAccount =
+            serde_json::from_slice(&std::fs::read(&journal).unwrap()).unwrap();
+        for key in managed.keys() {
+            assert!(
+                restored.applied.contains_key(key),
+                "{key} lost its restoration record"
+            );
+        }
     }
 
     #[tokio::test]
@@ -602,5 +759,39 @@ mod tests {
         ));
         assert!(!is_local_cursor_token("official-cursor-token"));
         assert!(!is_local_cursor_token(""));
+    }
+
+    /// Glass `ExperimentService._loadOverridesFromStorage` discards bare
+    /// booleans (`has no TTL, discarding`); overrides must be
+    /// `{value, expiresAt}` objects with `expiresAt: null` for no expiry.
+    #[test]
+    fn feature_flag_overrides_use_ttl_objects_the_client_accepts() {
+        let managed = managed_values().unwrap();
+        let raw = managed.get(FEATURE_FLAGS_KEY).unwrap();
+        let overrides: serde_json::Value = serde_json::from_str(raw).unwrap();
+        let overrides = overrides.as_object().unwrap();
+        let names: Vec<&str> = overrides.keys().map(String::as_str).collect();
+        assert_eq!(
+            names,
+            [
+                "agent_goal_continuation",
+                "explicit_subagent_models",
+                "local_computer_use",
+                "mcp_input_schema_json",
+                "meta_mcp_tool",
+                "opt_devs_into_experimental_model_toggle",
+                "subagent_support_interrupt",
+                "windows_computer_use_batch",
+            ]
+            .to_vec(),
+            "only gates proven live in 3.24.12 may be overridden"
+        );
+        for (name, entry) in overrides {
+            let entry = entry.as_object().unwrap_or_else(|| {
+                panic!("{name} must be a {{value, expiresAt}} object, not a boolean")
+            });
+            assert_eq!(entry.get("value"), Some(&serde_json::Value::Bool(true)));
+            assert_eq!(entry.get("expiresAt"), Some(&serde_json::Value::Null));
+        }
     }
 }

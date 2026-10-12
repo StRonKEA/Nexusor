@@ -86,7 +86,8 @@
   "combos.e_g_switch_to_gemini_when_claude": "例如:Claude 用完后切换 Gemini",
   "combos.edit_model_chain": "编辑模型链路",
   "combos.empty_desc": "组合可将多个模型串联在一起。若某个出错或配额耗尽，将自动切换到下一个。",
-  "combos.enabled": "启用",
+  "combos.enable": "启用",
+  "combos.enabled": "已启用",
   "combos.enabled_on": "已启用(开)",
   "combos.engine_auto_select": "自动选择模型",
   "combos.engine_edit_slots": "配置模型链",
@@ -672,5 +673,6 @@
   "settings.quota_notifications_disabled": "Desktop quota notifications disabled",
   "settings.quota_notifications_enable_hint": "Send desktop notifications when account quota is exhausted, cooled down, or drops below the warning threshold.",
   "settings.quota_notifications_enable_label": "Enable Quota & Cooldown Notifications",
-  "settings.quota_notifications_enabled": "Desktop quota notifications enabled"
+  "settings.quota_notifications_enabled": "Desktop quota notifications enabled",
+  "cursor.local_ca_certificate": "cursor.local_ca_certificate"
 }

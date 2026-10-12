@@ -1,5 +1,4 @@
-//! Dispatches search Tool calls.
-//! Cursor tool orchestration for application-owned Semble search.
+//! Dispatches `SemanticSearch` tool calls.
 
 use crate::{
     cursor::tools::{
@@ -25,8 +24,8 @@ pub(super) fn start(
     let results = results.clone();
     let started_at_ms = now_ms();
     tokio::spawn(async move {
-        let output = search::execute_semble(&tool_name, arguments, store).await;
-        match result::semble(&call, started_at_ms, output) {
+        let output = search::execute_semantic_search(&tool_name, arguments, store).await;
+        match result::semantic_search(&call, started_at_ms, output) {
             Ok(completion) => results.send(completion),
             Err(error) => results.send_error(error),
         }

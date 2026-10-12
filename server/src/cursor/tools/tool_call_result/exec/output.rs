@@ -12,9 +12,11 @@ pub(super) fn output(
         Message::WriteResult(value) => write(value),
         Message::DeleteResult(value) => delete(value),
         Message::GrepResult(value) => grep(value),
+        Message::LsResult(value) => ls(value),
         Message::DiagnosticsResult(value) => diagnostics(value, call),
         Message::McpResult(value) => mcp(value),
         Message::ReadMcpResourceExecResult(value) => read_mcp(value),
+        Message::ListMcpResourcesExecResult(value) => list_mcp_resources(value),
         Message::SubagentResult(value) => task(value, call),
         _ => Err(Error::Protocol(
             "unsupported terminal ExecClientMessage".into(),
@@ -256,6 +258,69 @@ fn grep(value: &pb::GrepResult) -> Result<(String, bool)> {
     match value.result.as_ref().ok_or_else(|| missing("grep"))? {
         R::Success(value) => Ok((grep_success(value), false)),
         R::Error(value) => Ok((value.error.clone(), true)),
+    }
+}
+
+fn ls_success(value: &pb::LsDirectoryTreeNode) -> String {
+    let mut lines = Vec::new();
+    ls_tree(value, None, &mut lines);
+    if lines.is_empty() {
+        return "The directory is empty.".to_string();
+    }
+    lines.join("\n")
+}
+
+/// Renders the directory tree Cursor returns, one relative path per line.
+fn ls_tree(node: &pb::LsDirectoryTreeNode, prefix: Option<&str>, lines: &mut Vec<String>) {
+    let base = match prefix {
+        Some(prefix) => format!("{}/{}", prefix, node.abs_path),
+        None => node.abs_path.clone(),
+    };
+    for file in &node.children_files {
+        lines.push(format!("{}/{}", base.trim_end_matches('/'), file.name));
+    }
+    for child in &node.children_dirs {
+        ls_tree(child, Some(&base), lines);
+    }
+    if node.num_files > 0 {
+        lines.push(format!(
+            "\n{} file(s) under {}",
+            node.num_files, node.abs_path
+        ));
+    }
+}
+
+fn ls(value: &pb::LsResult) -> Result<(String, bool)> {
+    use pb::ls_result::Result as R;
+    match value.result.as_ref() {
+        Some(R::Success(success)) => {
+            Ok((
+                ls_success(success.directory_tree_root.as_ref().unwrap_or(
+                    &pb::LsDirectoryTreeNode {
+                        abs_path: String::new(),
+                        ..Default::default()
+                    },
+                )),
+                false,
+            ))
+        }
+        Some(R::Timeout(timeout)) => Ok((
+            timeout
+                .directory_tree_root
+                .as_ref()
+                .map(ls_success)
+                .unwrap_or_else(|| "Directory listing timed out.".to_string()),
+            false,
+        )),
+        Some(R::Error(error)) => Ok((error.error.clone(), true)),
+        Some(R::Rejected(rejected)) => Ok((
+            format!(
+                "Directory listing for {} was rejected: {}",
+                rejected.path, rejected.reason
+            ),
+            true,
+        )),
+        None => Ok(("Directory listing returned no result.".to_string(), true)),
     }
 }
 
@@ -514,6 +579,41 @@ fn mcp_content(success: &pb::McpSuccess) -> Result<String> {
     } else {
         content.join("\n\n")
     })
+}
+
+fn list_mcp_resources(value: &pb::ListMcpResourcesExecResult) -> Result<(String, bool)> {
+    use pb::list_mcp_resources_exec_result::Result as R;
+    match value
+        .result
+        .as_ref()
+        .ok_or_else(|| missing("list MCP resources"))?
+    {
+        R::Success(value) => {
+            if value.resources.is_empty() {
+                return Ok(("No MCP resources are available.".to_string(), false));
+            }
+            let mut lines = value
+                .resources
+                .iter()
+                .map(|resource| {
+                    let name = resource.name.as_deref().unwrap_or(&resource.uri);
+                    match resource.description.as_deref() {
+                        Some(description) if !description.is_empty() => {
+                            format!("{} ({}): {}", resource.server, resource.uri, description)
+                        }
+                        _ => format!("{} ({}): {}", resource.server, resource.uri, name),
+                    }
+                })
+                .collect::<Vec<_>>();
+            lines.sort_unstable();
+            Ok((lines.join("\n"), false))
+        }
+        R::Error(value) => Ok((value.error.clone(), true)),
+        R::Rejected(value) => Ok((
+            format!("Listing MCP resources was rejected: {}", value.reason),
+            true,
+        )),
+    }
 }
 
 fn read_mcp(value: &pb::ReadMcpResourceExecResult) -> Result<(String, bool)> {

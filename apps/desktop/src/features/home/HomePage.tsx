@@ -1,43 +1,32 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { api, type LlmCall, type Overview, type PluginResourceMetric } from "../../shared/api";
+import { api, type Overview } from "../../shared/api";
 import { DailyTokenUsageChart } from "./charts/DailyTokenUsageChart";
 import { PageContent } from "../../shell/layout/PageContent";
 import { appStore, useAppStore } from "../../shared/store/appStore";
 import { useI18n } from "../../i18n/store";
 import { Icon } from "../../shared/ui/Icon";
-import { checkIcon, clockIcon, chevronDownIcon, closeIcon, alertCircleIcon, providerIcon } from "../../shared/ui/icons";
-import { getProviderLogo } from "../../shared/utils/providerIcons";
+import { clockIcon, chevronDownIcon, closeIcon, providerIcon } from "../../shared/ui/icons";
 import { formatCompactInteger } from "../../shared/utils/numberFormat";
-import { QuotaBadges } from "../../shared/ui/QuotaBadges";
 import styles from "./HomePage.module.scss";
 
 export function HomePage() {
-  const { overview, cursorHarness, plugins } = useAppStore();
-  const { locale } = useI18n();
+  const { overview, plugins } = useAppStore();
+  const { locale: _locale } = useI18n();
   const navigate = useNavigate();
   const [weekOverview, setWeekOverview] = useState<Overview | null>(null);
-  const [now, setNow] = useState(() => Date.now());
-  const [latestCall, setLatestCall] = useState<LlmCall | null>(null);
+  const now = Date.now();
 
-  // Poll latest call for the live traffic indicator
-  // Combined with the store refresh into a single unified polling cycle.
+  // Unified store refresh cycle
   useEffect(() => {
-    let active = true;
     const refreshAll = () => {
       if (document.visibilityState !== "visible") return;
       void appStore.refresh();
-      void api.calls().then((res) => {
-        if (active && res.length > 0) {
-          setLatestCall(res[0]);
-        }
-      }).catch(() => {});
     };
     refreshAll();
     const timer = setInterval(refreshAll, 10_000);
     window.addEventListener("focus", refreshAll);
     return () => {
-      active = false;
       clearInterval(timer);
       window.removeEventListener("focus", refreshAll);
     };
@@ -65,14 +54,6 @@ export function HomePage() {
 
   const activeOverview = weekOverview ?? overview;
 
-  // 1. Cursor Status Metrics
-  const isTakenOver = cursorHarness?.settings_applied ?? false;
-  const caReady = cursorHarness?.ca === "ready";
-  const proxyPort = cursorHarness?.proxy_url
-    ? cursorHarness.proxy_url.split(":").pop() || "6332"
-    : "—";
-
-  // 2. Account Pool Metrics
   const allAccounts = useMemo(() => {
     return plugins.flatMap((p) =>
       p.resources.flatMap((r) =>
@@ -86,12 +67,19 @@ export function HomePage() {
     );
   }, [plugins]);
 
-  const readyAccounts = allAccounts.filter((a) => a.state.status === "ready");
-  const coolingAccounts = allAccounts.filter((a) => a.state.status === "cooling");
-  const disabledAccounts = allAccounts.filter((a) => a.state.status === "disabled");
-
   const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<string>>(() => new Set());
   const [alertsExpanded, setAlertsExpanded] = useState<boolean>(false);
+
+  // Read custom quota threshold from settings (fallback to 15%)
+  const quotaThreshold = useMemo(() => {
+    const raw = localStorage.getItem("nexusor_quota_alert_threshold");
+    const num = Number(raw);
+    return Number.isFinite(num) && num > 0 ? num : 15;
+  }, []);
+
+  const notificationsEnabled = useMemo(() => {
+    return localStorage.getItem("nexusor_quota_notifications_enabled") !== "false";
+  }, []);
 
   const coolingOrExhaustedItems = useMemo(() => {
     const list: Array<{
@@ -121,19 +109,21 @@ export function HomePage() {
         continue;
       }
 
-      // Proaktif Kota Kontrolü: Kotası kritik (%15 altı) veya tükenmiş hesaplar için erken uyarı
-      for (const m of a.metrics) {
-        if (m.id.includes("quota") || m.id.includes("credits")) {
-          if (m.value > 0 && m.value <= 15) {
-            list.push({
-              id: `${a.id}-low-${m.id}`,
-              type: "low_quota",
-              provider: a.pluginName,
-              account: a.displayName || a.id,
-              model: null,
-              percent: Math.round(m.value),
-              retryAtMs: m.resetAtMs ?? null,
-            });
+      // Proaktif Kota Kontrolü: Kotası kullanıcının belirlediği eşik altı olan hesaplar için erken uyarı
+      if (notificationsEnabled) {
+        for (const m of a.metrics) {
+          if (m.id.includes("quota") || m.id.includes("credits")) {
+            if (m.value > 0 && m.value <= quotaThreshold) {
+              list.push({
+                id: `${a.id}-low-${m.id}`,
+                type: "low_quota",
+                provider: a.pluginName,
+                account: a.displayName || a.id,
+                model: null,
+                percent: Math.round(m.value),
+                retryAtMs: m.resetAtMs ?? null,
+              });
+            }
           }
         }
       }
@@ -273,65 +263,9 @@ export function HomePage() {
     }));
   }, [activeOverview]);
 
-  // Master Traffic-Light Status Determination
-  const masterState: "ok" | "warn" | "error" = useMemo(() => {
-    if (!isTakenOver || allAccounts.length === 0) return "error";
-    if (coolingAccounts.length > 0 || activeAlerts.length > 0) return "warn";
-    return "ok";
-  }, [isTakenOver, allAccounts.length, coolingAccounts.length, activeAlerts.length]);
-
   const dashboardContent = (
     <div className={styles.dashboard}>
-      {/* ── 0. Master Traffic-Light Status Card (Item 1) ── */}
-      <div className={styles.masterStatusCard} data-state={masterState}>
-        <div className={styles.masterStatusLeft}>
-          <div className={styles.masterStatusDot} data-state={masterState} />
-          <div className={styles.masterStatusTextGroup}>
-            <h4 className={styles.masterStatusTitle}>
-              {allAccounts.length === 0
-                ? t("home.status_no_accounts_title")
-                : !isTakenOver
-                ? t("home.status_disconnected_title")
-                : masterState === "warn"
-                ? t("home.status_degraded_title")
-                : t("home.status_all_operational_title")}
-            </h4>
-            <p className={styles.masterStatusDesc}>
-              {allAccounts.length === 0
-                ? t("home.status_no_accounts_desc")
-                : !isTakenOver
-                ? t("home.status_disconnected_desc")
-                : masterState === "warn"
-                ? t("home.status_degraded_desc")
-                : t("home.status_all_operational_desc")}
-            </p>
-          </div>
-        </div>
-
-        {(!isTakenOver || allAccounts.length === 0) && (
-          <div className={styles.masterStatusAction}>
-            {!isTakenOver ? (
-              <button
-                type="button"
-                className={styles.masterStatusBtn}
-                onClick={() => navigate("/cursor")}
-              >
-                {t("home.btn_repair_cursor")}
-              </button>
-            ) : (
-              <button
-                type="button"
-                className={styles.masterStatusBtn}
-                onClick={() => navigate("/providers")}
-              >
-                {t("home.btn_connect_account")}
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* ── Empty State Onboarding: When no accounts are connected (Item 6) ── */}
+      {/* ── Empty State Onboarding: When no accounts are connected ── */}
       {allAccounts.length === 0 ? (
         <div className={styles.onboardingCard}>
           <div className={styles.onboardingIcon}>
@@ -560,71 +494,7 @@ export function HomePage() {
         </div>
       )}
 
-      {/* ── 2. Live Providers & Quotas (Grouped by Provider, with Account Pool Summary on the Right!) ── */}
-      {allAccounts.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div className={styles.sectionHeader}>
-            <h3 className={styles.sectionTitle}>{t("home.live_providers_title")}</h3>
-            <div className={styles.poolSummaryHeader}>
-              <span className={styles.poolTotalBadge}>
-                {t("home.connected_accounts_count", { count: allAccounts.length })}
-              </span>
-              <span className={styles.metaItemReady}>
-                <span className={styles.statusDot} />
-                <span>{t("home.status_ready_count", { count: readyAccounts.length })}</span>
-              </span>
-              {coolingAccounts.length > 0 && (
-                <span className={styles.metaItemWarn}>
-                  <span className={styles.statusDot} />
-                  <span>{t("home.status_cooling_count", { count: coolingAccounts.length })}</span>
-                </span>
-              )}
-              {disabledAccounts.length > 0 && (
-                <span className={styles.metaItemDisabled}>
-                  <span className={styles.statusDot} />
-                  <span>{t("home.status_disabled_count", { count: disabledAccounts.length })}</span>
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className={styles.providersStrip}>
-            {plugins
-              .filter((p) => p.resources.some((r) => r.resources.length > 0))
-              .map((p) => {
-                const accounts = p.resources.flatMap((r) => r.resources);
-                const firstAccount = accounts.find((a) => a.state.status === "ready") || accounts[0];
-                const logo = getProviderLogo(p.id) || p.icon;
-
-                return (
-                  <div
-                    key={p.id}
-                    className={styles.providerSummaryCard}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => navigate("/models")}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate("/models"); }}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <div className={styles.providerLeft}>
-                      {logo && <img src={logo} alt="" className={styles.providerLogo} />}
-                      <span className={styles.providerName}>{p.name}</span>
-                      <span className={styles.providerAccountsBadge}>
-                        {t("home.accounts_count", { count: accounts.length })}
-                      </span>
-                    </div>
-
-                    <div className={styles.providerRight}>
-                      {firstAccount && <QuotaBadges metrics={firstAccount.metrics} />}
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-        </div>
-      )}
-
-      {/* ── 3. Daily Token Usage Chart (Last 7 Days) ── */}
+      {/* ── Daily Token Usage Chart (Last 7 Days) ── */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
         <div className={styles.sectionHeader}>
           <h3 className={styles.sectionTitle}>{t("home.token_trend_title")}</h3>
@@ -642,35 +512,6 @@ export function HomePage() {
   const pageTitle = (
     <div className={styles.pageTitleRow}>
       <span>{t("home.summary")}</span>
-      {latestCall && (
-        <Link
-          to="/calls"
-          className={styles.liveTrafficBadge}
-          title={t("home.live_traffic_tooltip")}
-        >
-          <span
-            className={styles.liveTrafficDot}
-            style={{
-              background: latestCall.status === "completed" ? "#27c376" : latestCall.status === "running" ? "#3186FF" : "#ef4444",
-            }}
-          />
-          <span>
-            {latestCall.display_name || latestCall.model_id}
-            {latestCall.duration_ms ? ` (${latestCall.duration_ms}ms)` : ""}
-          </span>
-        </Link>
-      )}
-      <Link
-        to="/cursor"
-        className={styles.titleCursorBadge}
-        data-taken={isTakenOver ? "true" : "false"}
-        title={t("nav.cursor_integration")}
-      >
-        <span className={isTakenOver ? styles.titleCursorDotOk : styles.titleCursorDotOff} />
-        <span>Cursor: {isTakenOver ? t("cursor.taken_over") : t("cursor.not_taken_over")}</span>
-        <span className={styles.titleCursorSub}>:{proxyPort}</span>
-        {caReady && <Icon icon={checkIcon} size="1.1em" className={styles.titleCheckIcon} />}
-      </Link>
     </div>
   );
 

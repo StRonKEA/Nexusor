@@ -17,7 +17,6 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  flex-wrap: wrap;
   padding: 0 0 6px 0;
 }
 
@@ -25,11 +24,12 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
 
   > * {
-    min-width: 130px;
-    max-width: 200px;
+    min-width: 140px;
+    max-width: 220px;
   }
 }
 
@@ -38,12 +38,15 @@
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .searchInput {
-  height: 30px !important;
+  height: 34px !important;
   font-size: 12px !important;
-  min-width: 180px;
+  min-width: 200px;
+  flex: 1;
+  max-width: 320px !important;
 }
 
 .tableWrap {

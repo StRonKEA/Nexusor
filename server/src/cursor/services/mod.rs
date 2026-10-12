@@ -19,3 +19,4 @@ mod tab_completion;
 mod tab_edits;
 pub mod terminal;
 pub mod usage;
+pub mod web;

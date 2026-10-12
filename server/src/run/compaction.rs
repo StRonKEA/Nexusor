@@ -332,6 +332,7 @@ mod tests {
                 tools: Vec::new(),
             },
             initial_messages: Vec::new(),
+            transcripts_folder: None,
             action: RunAction::Start,
             base_checkpoint_id: CheckpointId(1),
         }

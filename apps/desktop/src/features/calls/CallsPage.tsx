@@ -14,15 +14,21 @@ import styles from "./CallsPage.module.scss";
 const CALL_REFRESH_INTERVAL_MS = 2_000;
 
 function getProviderDisplayName(call: LlmCall): string {
-  const hash = call.model_hash || "";
+  const hash = (call.model_hash || "").toLowerCase();
   if (hash.includes("antigravity")) return "Google Antigravity";
   if (hash.includes("copilot")) return "GitHub Copilot";
   if (hash.includes("codex")) return "OpenAI Codex";
   if (hash.includes("grok")) return "xAI Grok";
   if (hash.includes("kimi")) return "Moonshot Kimi";
-  if (hash.includes("claude_code")) return "Claude Code";
-  if (call.provider_type === "openai-chat") return "OpenAI";
-  if (call.provider_type === "anthropic") return "Anthropic";
+  if (hash.includes("claude_code") || hash.includes("claude-code")) return "Claude Code";
+  if (hash.includes("deepseek")) return "DeepSeek";
+  if (hash.includes("groq")) return "Groq";
+  if (hash.includes("nvidia")) return "NVIDIA NIM";
+  if (hash.includes("opencode")) return "OpenCode";
+  if (hash.includes("ollama")) return "Ollama";
+  if (hash.includes("openrouter")) return "OpenRouter";
+  if (call.provider_type === "openai-chat") return "OpenAI (Custom)";
+  if (call.provider_type === "anthropic") return "Anthropic (Custom)";
   if (call.provider_type === "plugin") return t("calls.builtin_plugin");
   return call.provider_type || t("calls.unknown");
 }
@@ -55,6 +61,17 @@ export function CallsPage() {
     return () => {
       cancelled = true;
     };
+  }, [selectedCallId]);
+
+  useEffect(() => {
+    if (!selectedCallId) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSelectedCallId(null);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, [selectedCallId]);
 
   useEffect(() => {
@@ -93,8 +110,9 @@ export function CallsPage() {
       const q = searchQuery.toLowerCase();
       const matchId = call.call_id?.toLowerCase().includes(q);
       const matchModel = (call.display_name || call.model_id)?.toLowerCase().includes(q);
+      const matchProvider = getProviderDisplayName(call).toLowerCase().includes(q);
       const matchError = call.error_message?.toLowerCase().includes(q) || call.error_kind?.toLowerCase().includes(q);
-      if (!matchId && !matchModel && !matchError) return false;
+      if (!matchId && !matchModel && !matchProvider && !matchError) return false;
     }
     return true;
   }), [calls, modelFilter, providerFilter, statusFilter, searchQuery]);

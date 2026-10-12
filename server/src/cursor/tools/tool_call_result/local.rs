@@ -10,6 +10,7 @@ use crate::{
 use super::{now_ms, ToolCompletion};
 
 const SUBAGENTS_DISABLED_REMINDER: &str = "<system_reminder>The user has disabled the subagent model. Please remind the user to enable it in Cursor Settings → Models → Explore Subagent Model.</system_reminder>";
+const CLOUD_SUBAGENTS_UNSUPPORTED: &str = "Cloud subagents are unavailable in this setup: Nexusor runs agents locally with the user's own provider accounts. Re-run the Task without the cloud environment (omit `environment` or set it to `local`).";
 
 pub(crate) fn local(call: &ToolCall, message_index: usize) -> Result<ToolCompletion> {
     match normalized(&call.name).as_str() {
@@ -20,13 +21,21 @@ pub(crate) fn local(call: &ToolCall, message_index: usize) -> Result<ToolComplet
 }
 
 pub(crate) fn subagents_disabled(call: &ToolCall) -> Result<ToolCompletion> {
+    subagent_refusal(call, SUBAGENTS_DISABLED_REMINDER)
+}
+
+pub(crate) fn cloud_task_unsupported(call: &ToolCall) -> Result<ToolCompletion> {
+    subagent_refusal(call, CLOUD_SUBAGENTS_UNSUPPORTED)
+}
+
+fn subagent_refusal(call: &ToolCall, message: &str) -> Result<ToolCompletion> {
     let mut rendered = interaction::render_tool_call(call, false)?;
     let Some(pb::tool_call::Tool::TaskToolCall(tool)) = rendered.tool.as_mut() else {
         return Err(Error::Protocol("Task has no Cursor representation".into()));
     };
     tool.result = Some(pb::TaskResult {
         result: Some(pb::task_result::Result::Error(pb::TaskError {
-            error: SUBAGENTS_DISABLED_REMINDER.into(),
+            error: message.into(),
         })),
     });
     let tool = rendered
@@ -37,7 +46,7 @@ pub(crate) fn subagents_disabled(call: &ToolCall) -> Result<ToolCompletion> {
         now_ms(),
         ToolResult {
             call_id: call.call_id.clone(),
-            content: SUBAGENTS_DISABLED_REMINDER.into(),
+            content: message.into(),
             is_error: true,
             image: None,
             images: Vec::new(),

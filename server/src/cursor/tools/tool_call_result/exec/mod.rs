@@ -57,6 +57,15 @@ pub(crate) fn from_exec(
         (Some(Tool::GlobToolCall(tool)), Message::GrepResult(result)) => {
             tool.result = Some(render::glob(result)?);
         }
+        (Some(Tool::LsToolCall(tool)), Message::LsResult(result)) => {
+            tool.result = Some(result.clone());
+        }
+        (
+            Some(Tool::ListMcpResourcesToolCall(tool)),
+            Message::ListMcpResourcesExecResult(result),
+        ) => {
+            tool.result = Some(result.clone());
+        }
         (Some(Tool::ReadToolCall(tool)), Message::ReadResult(result))
         | (Some(Tool::ReadToolCall(tool)), Message::RedactedReadResult(result)) => {
             tool.result = Some(render::read(result, call)?);

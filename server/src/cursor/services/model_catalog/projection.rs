@@ -109,11 +109,29 @@ pub(crate) fn pretty_model_name(name: &str) -> String {
     }
 }
 
+pub(crate) fn model_supports_thinking(name: &str) -> bool {
+    let lower = name.to_ascii_lowercase();
+    // Non-thinking models
+    if lower.contains("gpt-4o")
+        || lower.contains("gpt-4-")
+        || lower.contains("gpt-3.5")
+        || lower.contains("claude-3-5-sonnet-20240620")
+        || lower.contains("claude-3-haiku")
+        || lower.contains("llama")
+        || lower.contains("mistral")
+        || lower.contains("qwen-2.5-coder-7b")
+    {
+        return false;
+    }
+    true
+}
+
 pub(crate) fn available_model(model: &ModelConfig) -> AvailableModel {
     let contexts = context_options(model.context_window_tokens);
     let tooltip = model_tooltip(model);
     let display_name = pretty_model_name(&model.display_name);
-    let variants = model_variants(&model.model_hash, &display_name, &tooltip, &contexts, true);
+    let thinking = model_supports_thinking(&model.model_hash) && model_supports_thinking(&model.display_name);
+    let variants = model_variants(&model.model_hash, &display_name, &tooltip, &contexts, thinking);
     let legacy_slugs = variants
         .iter()
         .filter_map(|variant| variant.legacy_slug.clone())
@@ -124,7 +142,7 @@ pub(crate) fn available_model(model: &ModelConfig) -> AvailableModel {
         supports_agent: Some(true),
         degradation_status: Some(0),
         tooltip_data: Some(tooltip.clone()),
-        supports_thinking: Some(true),
+        supports_thinking: Some(thinking),
         supports_images: Some(true),
         supports_max_mode: Some(true),
         client_display_name: Some(display_name.clone()),
@@ -136,7 +154,7 @@ pub(crate) fn available_model(model: &ModelConfig) -> AvailableModel {
         inputbox_short_model_name: Some(display_name),
         supports_sandboxing: Some(true),
         supports_cmd_k: Some(true),
-        parameter_definitions: model_parameters(&contexts, true),
+        parameter_definitions: model_parameters(&contexts, thinking),
         variants,
         legacy_slugs,
         named_model_section_index: Some(1),

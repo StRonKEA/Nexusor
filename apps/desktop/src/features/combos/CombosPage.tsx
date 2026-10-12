@@ -560,7 +560,15 @@ function ComboCard({ combo, accounts, onEdit, onDelete, onToggle }: {
       count: number;
     }
     const groups: GroupedSlotItem[] = [];
-    for (const slot of combo.slots) {
+    const slots = combo.slots && combo.slots.length > 0
+      ? combo.slots
+      : (combo.models || []).map((mid) => ({
+          model_id: mid,
+          account_ids: null,
+          slot_strategy: combo.strategy,
+        }));
+
+    for (const slot of slots) {
       const aid = slot.account_ids?.[0];
       const acc = aid
         ? accounts.find((a) => a.id === aid)
@@ -587,7 +595,7 @@ function ComboCard({ combo, accounts, onEdit, onDelete, onToggle }: {
       }
     }
     return groups;
-  }, [combo.slots, accounts, allModelOptions]);
+  }, [combo.slots, combo.models, combo.strategy, accounts, allModelOptions]);
 
   return (
     <Card className={styles.comboCard}>
@@ -596,11 +604,11 @@ function ComboCard({ combo, accounts, onEdit, onDelete, onToggle }: {
           <span className={`${styles.dot} ${combo.enabled ? styles.dotActive : styles.dotOff}`} />
           <h3 className={styles.comboName}>{combo.name}</h3>
           {!combo.enabled && <span className={styles.disabledTag}>{t("combos.disabled")}</span>}
-          <span className={styles.comboBadge}>{chainStrategyLabel(combo.strategy, t)}</span>
+          <span className={styles.comboBadge}>{chainStrategyLabel(combo.strategy)}</span>
         </div>
         <div className={styles.comboCardActions}>
           <Button size="small" variant="secondary" onClick={onToggle}>
-            {combo.enabled ? t("combos.disable") : t("combos.enabled")}
+            {combo.enabled ? t("combos.disable") : t("combos.enable")}
           </Button>
           <Button size="small" variant="secondary" onClick={onEdit}>{t("common.edit")}</Button>
           <Button size="small" variant="secondary" onClick={onDelete}>{t("common.delete")}</Button>

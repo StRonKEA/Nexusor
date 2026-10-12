@@ -85,7 +85,8 @@
   "combos.e_g_coding_chain": "Ex.: Cadeia de Codificação",
   "combos.e_g_switch_to_gemini_when_claude": "Ex.: mudar para o Gemini quando o Claude acabar",
   "combos.edit_model_chain": "Editar cadeia de modelos",
-  "combos.empty_desc": "As combinações permitem encadear vários modelos. Se um falhar ou ficar sem cota, o próximo da cadeia é ativado automaticamente.",
+  "combos.empty_desc": "As combinações permitem encadear vários modelos. Se um falhar veya ficar sem cota, o próximo da cadeia é ativado automaticamente.",
+  "combos.enable": "Ativar",
   "combos.enabled": "Ativado",
   "combos.enabled_on": "Ativado (Ligado)",
   "combos.engine_auto_select": "Seleção Automática de Modelo",
@@ -672,5 +673,6 @@
   "settings.quota_notifications_disabled": "Desktop quota notifications disabled",
   "settings.quota_notifications_enable_hint": "Send desktop notifications when account quota is exhausted, cooled down, or drops below the warning threshold.",
   "settings.quota_notifications_enable_label": "Enable Quota & Cooldown Notifications",
-  "settings.quota_notifications_enabled": "Desktop quota notifications enabled"
+  "settings.quota_notifications_enabled": "Desktop quota notifications enabled",
+  "cursor.local_ca_certificate": "cursor.local_ca_certificate"
 }

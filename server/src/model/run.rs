@@ -55,6 +55,13 @@ pub struct PreparedRun {
     pub model: ModelSpec,
     pub prompt: PromptSpec,
     pub initial_messages: Vec<CanonicalMessage>,
+    /// Where Cursor keeps this workspace's chat transcripts, taken from the
+    /// request's environment details.
+    ///
+    /// Cursor resolves a chat link by opening
+    /// `<folder>/<conversation_id>/<conversation_id>.jsonl`; without that file a
+    /// conversation that exists is still reported as "Chat not found".
+    pub transcripts_folder: Option<String>,
     pub action: RunAction,
     pub base_checkpoint_id: CheckpointId,
 }

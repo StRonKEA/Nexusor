@@ -718,6 +718,42 @@ pub struct CountTokensResponse {
     pub count: i32,
 }
 
+#[derive(Clone, PartialEq, Message)]
+pub struct GetChatTitleResponse {
+    #[prost(string, tag = "1")]
+    pub title: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+pub struct SuggestQuickActionsResponse {
+    #[prost(string, repeated, tag = "1")]
+    pub actions: Vec<String>,
+}
+
+#[derive(Clone, PartialEq, Message)]
+pub struct CheckLongFilesFitResponse {
+    #[prost(bool, tag = "1")]
+    pub fits: bool,
+}
+
+#[derive(Clone, PartialEq, Message)]
+pub struct GetComposerAutocompleteResponse {
+    #[prost(string, tag = "1")]
+    pub text: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+pub struct ShadowHealthCheckResponse {
+    #[prost(bool, tag = "1")]
+    pub healthy: bool,
+}
+
+#[derive(Clone, PartialEq, Message)]
+pub struct GetLintsForChangeResponse {}
+
+#[derive(Clone, PartialEq, Message)]
+pub struct FastApplyResponse {}
+
 #[derive(Clone, Copy, PartialEq, Message)]
 struct Empty {}
 
@@ -877,7 +913,10 @@ pub async fn stripe_profile(
     if let Ok(mut json_val) = serde_json::from_slice::<Value>(&bytes) {
         if let Some(obj) = json_val.as_object_mut() {
             obj.insert("membershipType".into(), Value::String("ultra".into()));
-            obj.insert("individualMembershipType".into(), Value::String("ultra".into()));
+            obj.insert(
+                "individualMembershipType".into(),
+                Value::String("ultra".into()),
+            );
             obj.insert("subscriptionStatus".into(), Value::String("active".into()));
             if let Ok(modified_bytes) = serde_json::to_vec(&json_val) {
                 let len = modified_bytes.len();
@@ -1202,16 +1241,19 @@ pub async fn create_transcript_overview(
         crate::api::cursor::CURSOR_MAX_BODY_BYTES,
     )
     .await
-    .map_err(|e| crate::Error::Protocol(format!("cannot read CreateTranscriptOverview body: {e}")))?;
-    let req: CreateTranscriptOverviewRequest = crate::cursor::protocol::connect::decode_unary(&bytes)?;
-    
+    .map_err(|e| {
+        crate::Error::Protocol(format!("cannot read CreateTranscriptOverview body: {e}"))
+    })?;
+    let req: CreateTranscriptOverviewRequest =
+        crate::cursor::protocol::connect::decode_unary(&bytes)?;
+
     // Generate overview using fast model from AutoRouter / Provider
     let prompt = format!(
         "Summarize the following developer conversation in 1-2 concise, high-density sentences describing what was accomplished:\n\n{}",
         req.formatted_conversation
     );
     let mut overview = String::new();
-    
+
     // We execute via provider router with fast intent
     let call_id = format!("overview-{}", uuid::Uuid::new_v4());
     let invocation = crate::model::ModelInvocation {
@@ -1228,27 +1270,29 @@ pub async fn create_transcript_overview(
             history: vec![crate::model::ProjectedMessage {
                 message_id: "overview-req".into(),
                 role: crate::model::Role::User,
-                content: crate::model::ProjectedContent::Parts(vec![crate::model::ContentPart::Text {
-                    text: prompt,
-                }]),
+                content: crate::model::ProjectedContent::Parts(vec![
+                    crate::model::ContentPart::Text { text: prompt },
+                ]),
             }],
         },
         slot_account_ids: None,
         slot_strategy: None,
     };
-    
-    let stream = registry.provider().stream(invocation, tokio_util::sync::CancellationToken::new());
+
+    let stream = registry
+        .provider()
+        .stream(invocation, tokio_util::sync::CancellationToken::new());
     futures_util::pin_mut!(stream);
     while let Some(Ok(event)) = stream.next().await {
         if let crate::provider::ModelEvent::TextDelta(delta) = event {
             overview.push_str(&delta);
         }
     }
-    
+
     if overview.trim().is_empty() {
         overview = "Session completed with local project updates.".to_string();
     }
-    
+
     proto(CreateTranscriptOverviewResponse {
         overview: overview.trim().to_string(),
     })
@@ -1278,7 +1322,7 @@ pub async fn stream_review(
     )
     .await
     .map_err(|e| crate::Error::Protocol(format!("cannot read StreamReview body: {e}")))?;
-    
+
     let req: ReviewRequestV2 = match crate::cursor::protocol::connect::decode_unary(&bytes) {
         Ok(r) => r,
         Err(_) => {
@@ -1307,7 +1351,7 @@ pub async fn stream_review(
         "Perform a thorough code review of the following changes. Identify any obvious bugs, security issues, or regressions:\n\n{}",
         diff_summary
     );
-    
+
     let call_id = format!("review-{}", uuid::Uuid::new_v4());
     let invocation = crate::model::ModelInvocation {
         call_id: call_id.clone(),
@@ -1323,9 +1367,9 @@ pub async fn stream_review(
             history: vec![crate::model::ProjectedMessage {
                 message_id: "review-req".into(),
                 role: crate::model::Role::User,
-                content: crate::model::ProjectedContent::Parts(vec![crate::model::ContentPart::Text {
-                    text: prompt,
-                }]),
+                content: crate::model::ProjectedContent::Parts(vec![
+                    crate::model::ContentPart::Text { text: prompt },
+                ]),
             }],
         },
         slot_account_ids: None,
@@ -1333,7 +1377,9 @@ pub async fn stream_review(
     };
 
     let mut findings = String::new();
-    let stream = registry.provider().stream(invocation, tokio_util::sync::CancellationToken::new());
+    let stream = registry
+        .provider()
+        .stream(invocation, tokio_util::sync::CancellationToken::new());
     futures_util::pin_mut!(stream);
     while let Some(Ok(event)) = stream.next().await {
         if let crate::provider::ModelEvent::TextDelta(delta) = event {
@@ -1393,7 +1439,7 @@ pub async fn name_agent(request: Request<Body>) -> Result<Response<Body>> {
     )
     .await
     .map_err(|e| crate::Error::Protocol(format!("cannot read NameAgent body: {e}")))?;
-    
+
     let mut name = "Agent Task".to_string();
     if let Ok(req) = NameAgentRequest::decode(bytes.as_ref()) {
         let clean: String = req
@@ -1429,7 +1475,9 @@ pub async fn lint_file() -> Result<Response<Body>> {
 }
 
 pub async fn lint_chunk() -> Result<Response<Body>> {
-    proto(LintChunkResponse { chunk_tokens: Vec::new() })
+    proto(LintChunkResponse {
+        chunk_tokens: Vec::new(),
+    })
 }
 
 pub async fn should_turn_on_cpp_onboarding() -> Result<Response<Body>> {
@@ -1439,9 +1487,7 @@ pub async fn should_turn_on_cpp_onboarding() -> Result<Response<Body>> {
 }
 
 pub async fn is_git_graph_enabled() -> Result<Response<Body>> {
-    proto(IsGitGraphEnabledResponse {
-        is_enabled: true,
-    })
+    proto(IsGitGraphEnabledResponse { is_enabled: true })
 }
 
 pub async fn get_git_graph_status() -> Result<Response<Body>> {
@@ -1449,6 +1495,278 @@ pub async fn get_git_graph_status() -> Result<Response<Body>> {
         num_successful_commits: 1,
         num_failed_commits: 0,
     })
+}
+
+pub async fn stream_composer_context() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn get_passthrough_prompt() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn get_evaluation_prompt() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn stream_ai_previews() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn push_ai_thought() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn check_doable_as_task() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn stream_interface_agent_status() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn task_get_interface_agent_status() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn task_init() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn task_pause() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn task_info() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn task_stream_log() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn task_send_message() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn task_provide_result() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn stream_stt() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn get_realtime_voice() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn background_composer_generic() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn agent_host_generic() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn get_simple_prompt() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn get_cpp_edit_classification() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn list_mcp_tools() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn get_signed_url_for_attached_media() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn get_new_chat_nudge_parameterized_model_picker() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn get_prompt_context_usage() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn get_scm_pull_request_timeline_events() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn get_remote_control_v2_user_settings() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn connect_target() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn list_shared_targets() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn ensure_sandbox() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn admit_run() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn report_agent_snapshot() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn list_gkw_connectors() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn report_workspace_repositories() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn get_debugging_data_upload_url() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn scheduler_stream() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn scheduler_acquire() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn list_pipeline_definitions() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn get_unified_me() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn get_team_credits() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn create_marketplace_extension_publisher() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn stream_replay_chat() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn create_customer_eval_definition() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn preflight_pair_release() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn get_unify_eligibility() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn vm_sync_index() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn create_deeplink() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn get_deeplink_data() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn list_deeplinks() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn ping_health() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn upload_documentation() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn get_simulation() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn get_sand_limit_simulation() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn list_agent_stores() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn get_public_ip() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn list_recommended_actions() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn list_onboarding_checklist_items() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn create_automation() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn list_automations() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn has_seen_ad() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn publish_app() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn mark_cpp_for_eval() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn add_tab_request_to_eval() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn register_codebase() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn ai_project_agent_init() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn v0_chain_run() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn opus_chain_get_plan() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn repo_history_init_handshake() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn classify_agent_auto_review() -> Result<Response<Body>> {
+    proto(Empty {})
 }
 
 pub async fn get_git_graph_related_files() -> Result<Response<Body>> {
@@ -1485,6 +1803,97 @@ pub async fn write_git_branch_name(request: Request<Body>) -> Result<Response<Bo
     proto(WriteGitBranchNameResponse {
         branch_name: branch,
     })
+}
+
+pub async fn get_chat_title(request: Request<Body>) -> Result<Response<Body>> {
+    let bytes = to_bytes(request.into_body(), usize::MAX)
+        .await
+        .map_err(|e| crate::Error::Protocol(format!("cannot read GetChatTitle body: {e}")))?;
+    let mut title = "New Discussion".to_string();
+    if let Ok(text) = std::str::from_utf8(&bytes) {
+        let clean = text
+            .chars()
+            .filter(|c| c.is_alphanumeric() || c.is_whitespace())
+            .collect::<String>();
+        let words: Vec<&str> = clean
+            .split_whitespace()
+            .filter(|w| w.len() > 2)
+            .take(4)
+            .collect();
+        if !words.is_empty() {
+            title = words.join(" ");
+        }
+    }
+    proto(GetChatTitleResponse { title })
+}
+
+pub async fn suggest_quick_actions() -> Result<Response<Body>> {
+    proto(SuggestQuickActionsResponse {
+        actions: vec![
+            "Explain Code".into(),
+            "Find Bugs".into(),
+            "Refactor".into(),
+            "Write Tests".into(),
+        ],
+    })
+}
+
+pub async fn check_long_files_fit() -> Result<Response<Body>> {
+    proto(CheckLongFilesFitResponse { fits: true })
+}
+
+pub async fn get_composer_autocomplete() -> Result<Response<Body>> {
+    proto(GetComposerAutocompleteResponse {
+        text: String::new(),
+    })
+}
+
+pub async fn shadow_health_check() -> Result<Response<Body>> {
+    proto(ShadowHealthCheckResponse { healthy: true })
+}
+
+pub async fn get_lints_for_change() -> Result<Response<Body>> {
+    proto(GetLintsForChangeResponse {})
+}
+
+pub async fn fast_apply() -> Result<Response<Body>> {
+    proto(FastApplyResponse {})
+}
+
+pub async fn git_filter() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn file_filter() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn bug_analysis() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn list_background_composers() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn get_pull_request() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn get_pr_agent_context() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn batch_get_pull_requests() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn get_context_scores() -> Result<Response<Body>> {
+    proto(Empty {})
+}
+
+pub async fn refresh_tab_context() -> Result<Response<Body>> {
+    proto(Empty {})
 }
 
 pub async fn get_full_self_driving_config() -> Result<Response<Body>> {

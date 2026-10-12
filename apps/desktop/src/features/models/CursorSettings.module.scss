@@ -87,6 +87,172 @@
   }
 }
 
+.catalogToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 4px;
+}
+
+.catalogFilterTabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 3px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.catalogTabBtn {
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  padding: 5px 12px;
+  color: #8a8f98;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    color: #f7f8f8;
+  }
+}
+
+.catalogTabActive {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+.catalogSearchWrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--vscode-input-background, #1e1e1e);
+  border: 1px solid var(--vscode-input-border, rgba(255, 255, 255, 0.08));
+  border-radius: 6px;
+  padding: 0 10px;
+  height: 32px;
+  min-width: 200px;
+}
+
+.catalogSearchIcon {
+  color: #8a8f98;
+  font-size: 14px;
+}
+
+.catalogSearchInput {
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: var(--vscode-input-foreground, #cccccc);
+  font-size: 12px;
+  width: 100%;
+}
+
+.catalogList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modelCatalogRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.09);
+  }
+}
+
+.modelRowLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.modelProviderLogo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.modelProviderLogoPlaceholder {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8a8f98;
+  flex-shrink: 0;
+}
+
+.modelRowInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.modelProviderBadge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(94, 106, 210, 0.12);
+  color: #8b92f7;
+  border: 1px solid rgba(94, 106, 210, 0.25);
+  white-space: nowrap;
+}
+
+.modelAccountBadge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(39, 195, 118, 0.1);
+  color: #27c376;
+  border: 1px solid rgba(39, 195, 118, 0.25);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modelAccountBadgeUnlinked {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(235, 87, 87, 0.1);
+  color: #eb5757;
+  border: 1px solid rgba(235, 87, 87, 0.25);
+  white-space: nowrap;
+}
+
+.modelRowRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
 .modelGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));

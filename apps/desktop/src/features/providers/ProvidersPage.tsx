@@ -278,21 +278,23 @@ export function ProvidersPage() {
                     {configured ? t("providers.connected") : t("providers.not_connected")}
                   </span>
                 </div>
-                <p className={styles.metaText}>
-                  {t("providers.active_account_s_connected", { count: accountCount })}
-                </p>
-                <div className={styles.cardActions}>
-                  <Button
-                    size="small"
-                    variant={configured ? "secondary" : "primary"}
-                    onClick={() =>
-                      navigate(
-                        `/providers/${encodeURIComponent(plugin.id)}?tab=${configured ? "accounts" : "add"}`
-                      )
-                    }
-                  >
-                    {configured ? t("providers.manage_accounts_2") : t("providers.connect_account")}
-                  </Button>
+                <div className={styles.cardBottomRow}>
+                  <p className={styles.metaText}>
+                    {t("providers.active_account_s_connected", { count: accountCount })}
+                  </p>
+                  <div className={styles.cardActions}>
+                    <Button
+                      size="small"
+                      variant={configured ? "secondary" : "primary"}
+                      onClick={() =>
+                        navigate(
+                          `/providers/${encodeURIComponent(plugin.id)}?tab=${configured ? "accounts" : "add"}`
+                        )
+                      }
+                    >
+                      {configured ? t("providers.manage_accounts_2") : t("providers.connect_account")}
+                    </Button>
+                  </div>
                 </div>
               </Card>
             );

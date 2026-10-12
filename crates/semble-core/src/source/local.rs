@@ -56,6 +56,7 @@ pub fn discover_files(
         .git_exclude(true)
         .parents(true)
         .add_custom_ignore_filename(".sembleignore")
+        .add_custom_ignore_filename(".cursorignore")
         .filter_entry(|entry| {
             entry
                 .file_name()

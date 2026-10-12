@@ -12,6 +12,18 @@ use sha2::{Digest, Sha256};
 use crate::{api::cursor::proxy, local_app, Error, Result};
 
 pub const BOOTSTRAP_STATSIG_PATH: &str = "/aiserver.v1.AnalyticsService/BootstrapStatsig";
+/// Local Statsig gates answered `true` for local-token sessions only.
+///
+/// Every entry here is proven live in Cursor 3.24.12: the name exists in the
+/// client's `dAe` defaults table AND is read through a gate reader
+/// (`checkFeatureGate` / `bl` / `ix` / `L_` / `getFeatureGateProperty`) in
+/// `workbench.glass.main.js` or a `cursor-*` extension. Thirteen historical
+/// names (`cursor_plan_mode`, `cursor_auto_mode`, `composer_background_agent`,
+/// `composer_auto_context`, `composer_diff_review`, `composer_loop_on_lints`,
+/// `composer_mega_planner`, `agent_parallel_subagents`, `subagent_multi_turn`,
+/// `mcp_tools_enabled`, `enable_fast_mode`, `enable_thinking_models`,
+/// `enable_model_picker_max_mode`) are absent from `dAe` and have zero reads
+/// anywhere, so they were removed rather than answered.
 const FEATURE_GATES: &[&str] = &[
     "nal_agent_retries",
     "explicit_subagent_models",
@@ -19,20 +31,9 @@ const FEATURE_GATES: &[&str] = &[
     "opt_devs_into_experimental_model_toggle",
     "meta_mcp_tool",
     "mcp_input_schema_json",
+    "local_computer_use",
+    "windows_computer_use_batch",
     "glass_custom_modes",
-    "cursor_plan_mode",
-    "cursor_auto_mode",
-    "composer_background_agent",
-    "composer_auto_context",
-    "composer_diff_review",
-    "composer_loop_on_lints",
-    "composer_mega_planner",
-    "agent_parallel_subagents",
-    "subagent_multi_turn",
-    "mcp_tools_enabled",
-    "enable_fast_mode",
-    "enable_thinking_models",
-    "enable_model_picker_max_mode",
 ];
 const LOCAL_RULE: &str = "local_enabled";
 
@@ -195,4 +196,56 @@ fn enabled_gate(name: &str) -> Value {
         "id_type": "userID",
         "idType": "userID"
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The local bootstrap must answer exactly the gates proven live in the
+    /// installed 3.24.12 client: present in the `dAe` defaults table and read
+    /// through a gate reader. A removed dead gate reappearing here is a bug.
+    #[test]
+    fn local_bootstrap_answers_only_gates_proven_live() {
+        assert_eq!(
+            FEATURE_GATES,
+            &[
+                "nal_agent_retries",
+                "explicit_subagent_models",
+                "subagent_support_interrupt",
+                "opt_devs_into_experimental_model_toggle",
+                "meta_mcp_tool",
+                "mcp_input_schema_json",
+                "local_computer_use",
+                "windows_computer_use_batch",
+                "glass_custom_modes",
+            ]
+        );
+        let mut config = json!({"hash_used": "none"});
+        enable_feature_gates(&mut config).unwrap();
+        let gates = config["feature_gates"].as_object().unwrap();
+        assert_eq!(gates.len(), FEATURE_GATES.len());
+        for gate in FEATURE_GATES {
+            assert_eq!(gates[*gate]["value"], Value::Bool(true));
+        }
+        for dead in [
+            "browser_mcp_chip",
+            "context_visualizer",
+            "cursor_plan_mode",
+            "cursor_auto_mode",
+            "composer_background_agent",
+            "composer_auto_context",
+            "composer_diff_review",
+            "composer_loop_on_lints",
+            "composer_mega_planner",
+            "agent_parallel_subagents",
+            "subagent_multi_turn",
+            "mcp_tools_enabled",
+            "enable_fast_mode",
+            "enable_thinking_models",
+            "enable_model_picker_max_mode",
+        ] {
+            assert!(!gates.contains_key(dead), "{dead} is dead in 3.24.12");
+        }
+    }
 }

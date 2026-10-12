@@ -183,6 +183,7 @@ mod tests {
                 Origin::User,
                 "fitting input",
             )],
+            transcripts_folder: None,
             action: RunAction::Start,
             base_checkpoint_id: CheckpointId(1),
         };

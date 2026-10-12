@@ -7,6 +7,7 @@ mod output;
 mod pending;
 mod registry;
 mod runtime;
+pub(crate) mod transcript;
 
 pub use command::*;
 pub use delivery::*;

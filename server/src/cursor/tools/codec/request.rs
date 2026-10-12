@@ -118,6 +118,23 @@ pub fn request(id: u32, call: &ToolCall, context: &ExecContext) -> Result<pb::Ag
             tool_call_id: call.call_id.clone(),
             ..Default::default()
         }),
+        "ls" | "listdir" => Message::LsArgs(pb::LsArgs {
+            path: string_aliased(&["target_directory", "path", "directory"])?,
+            ignore: call
+                .arguments
+                .get("ignore_globs")
+                .and_then(Value::as_array)
+                .map(|patterns| {
+                    patterns
+                        .iter()
+                        .filter_map(Value::as_str)
+                        .map(str::to_string)
+                        .collect()
+                })
+                .unwrap_or_default(),
+            tool_call_id: call.call_id.clone(),
+            ..Default::default()
+        }),
         "readlints" => Message::DiagnosticsArgs(pb::DiagnosticsArgs {
             path: call
                 .arguments
@@ -159,6 +176,9 @@ pub fn request(id: u32, call: &ToolCall, context: &ExecContext) -> Result<pb::Ag
             },
             cloud_base_branch: optional_string("cloud_base_branch"),
             credentials: None,
+        }),
+        "listmcpresources" => Message::ListMcpResourcesExecArgs(pb::ListMcpResourcesExecArgs {
+            server: optional_string("server"),
         }),
         "fetchmcpresource" => Message::ReadMcpResourceExecArgs(pb::ReadMcpResourceExecArgs {
             server: string("server")?,
@@ -565,5 +585,86 @@ mod tests {
             panic!("expected ShellStreamArgs");
         };
         assert_eq!(args.command, "ls -la");
+    }
+
+    fn call(name: &str, arguments: serde_json::Value) -> ToolCall {
+        ToolCall {
+            index: 0,
+            call_id: "call-1".into(),
+            model_call_id: "model-1".into(),
+            name: name.into(),
+            arguments_text: String::new(),
+            arguments,
+            argument_error: None,
+        }
+    }
+
+    fn exec_message(
+        message: &crate::cursor::protocol::proto::agent::v1::AgentServerMessage,
+    ) -> pb::exec_server_message::Message {
+        let Some(pb::agent_server_message::Message::ExecServerMessage(exec)) = &message.message
+        else {
+            panic!("expected an ExecServerMessage");
+        };
+        exec.message.clone().expect("expected an exec message")
+    }
+
+    #[test]
+    fn ls_is_encoded_as_a_directory_listing_request() {
+        // `LS` was the one tool with no directory-listing path at all. It must
+        // reach Cursor's own lister as LsArgs, not fail as an unknown tool.
+        let message = request(
+            1,
+            &call(
+                "LS",
+                json!({
+                    "target_directory": "C:/workspace",
+                    "ignore_globs": ["**/node_modules/**", "dist"]
+                }),
+            ),
+            &ExecContext::default(),
+        )
+        .unwrap();
+        let Some(pb::exec_server_message::Message::LsArgs(args)) = Some(exec_message(&message))
+        else {
+            panic!("expected LsArgs");
+        };
+        assert_eq!(args.path, "C:/workspace");
+        assert_eq!(
+            args.ignore,
+            vec!["**/node_modules/**".to_string(), "dist".to_string()]
+        );
+        assert_eq!(args.tool_call_id, "call-1");
+    }
+
+    #[test]
+    fn list_dir_alias_reaches_the_same_directory_listing_request() {
+        // Cursor sends `list_dir` to some model versions instead of `LS`.
+        let message = request(
+            1,
+            &call("list_dir", json!({ "target_directory": "/workspace" })),
+            &ExecContext::default(),
+        )
+        .unwrap();
+        assert!(matches!(
+            exec_message(&message),
+            pb::exec_server_message::Message::LsArgs(_)
+        ));
+    }
+
+    #[test]
+    fn list_mcp_resources_is_encoded_as_a_resource_listing_request() {
+        let message = request(
+            1,
+            &call("ListMcpResources", json!({})),
+            &ExecContext::default(),
+        )
+        .unwrap();
+        let Some(pb::exec_server_message::Message::ListMcpResourcesExecArgs(args)) =
+            Some(exec_message(&message))
+        else {
+            panic!("expected ListMcpResourcesExecArgs");
+        };
+        assert_eq!(args.server, None, "omitting the server lists every server");
     }
 }

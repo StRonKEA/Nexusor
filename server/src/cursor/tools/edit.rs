@@ -34,7 +34,7 @@ pub(crate) fn path(call: &ToolCall) -> Result<String> {
 
 pub(crate) fn execution_path(call: &ToolCall) -> Result<Option<String>> {
     match normalized(&call.name).as_str() {
-        "write" | "strreplace" | "editnotebook" => path(call).map(Some),
+        "write" | "strreplace" | "editnotebook" | "applypatch" => path(call).map(Some),
         _ => Ok(None),
     }
 }
@@ -82,6 +82,7 @@ pub(crate) fn after_read(
         }
         "strreplace" => replace_string(call, &before)?,
         "editnotebook" => edit_notebook(call, &before)?,
+        "applypatch" => apply_patch(call, &before)?,
         _ => return Err(format!("{} is not an edit tool", call.name)),
     };
     Ok(EditWrite { before, after })
@@ -124,6 +125,58 @@ pub(crate) fn failure(path: String, error: impl Into<String>) -> pb::EditResult 
 pub(crate) fn normalize_newlines(value: &str) -> String {
     let normalized = value.replace("\r\n", "\n");
     normalized.replace('\r', "\n")
+}
+
+fn apply_patch(call: &ToolCall, before: &str) -> std::result::Result<String, String> {
+    let patch_text = normalize_newlines(
+        &string_any(call, &["patch", "diff", "patch_text", "diff_text", "contents"])
+            .map_err(|error| error.to_string())?,
+    );
+    if patch_text.trim().is_empty() {
+        return Err("patch text must not be empty".into());
+    }
+
+    // Try parsing unified diff or git patch lines
+    let mut lines: Vec<&str> = before.lines().collect();
+    let mut hunks_applied = false;
+
+    // Simple robust unified hunk processor
+    let mut current_idx = 0;
+    for line in patch_text.lines() {
+        if line.starts_with("@@") {
+            hunks_applied = true;
+            // Parse line reference or start from context
+            continue;
+        }
+        if line.starts_with('-') && !line.starts_with("---") {
+            let target = &line[1..];
+            if let Some(pos) = lines[current_idx..].iter().position(|l| *l == target) {
+                lines.remove(current_idx + pos);
+            }
+        } else if line.starts_with('+') && !line.starts_with("+++") {
+            let addition = &line[1..];
+            if current_idx <= lines.len() {
+                lines.insert(current_idx, addition);
+                current_idx += 1;
+            }
+        } else if line.starts_with(' ') {
+            let context = &line[1..];
+            if let Some(pos) = lines[current_idx..].iter().position(|l| *l == context) {
+                current_idx += pos + 1;
+            }
+        }
+    }
+
+    if !hunks_applied {
+        // Fallback: if patch is direct replacement content
+        return Ok(patch_text);
+    }
+
+    let mut result = lines.join("\n");
+    if before.ends_with('\n') && !result.ends_with('\n') {
+        result.push('\n');
+    }
+    Ok(result)
 }
 
 fn replace_string(call: &ToolCall, before: &str) -> std::result::Result<String, String> {

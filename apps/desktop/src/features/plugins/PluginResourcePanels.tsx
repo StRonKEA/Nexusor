@@ -659,7 +659,7 @@ function ResourceRow({ pluginId, resourceType, item, actions, canRefresh, disabl
                 {pluginText(item.description, locale)}
               </span>
             )}
-            {item.note && (
+            {item.note ? (
               <span
                 className={styles.accountNoteBadge}
                 title={t("plugins.edit_account_note")}
@@ -667,15 +667,27 @@ function ResourceRow({ pluginId, resourceType, item, actions, canRefresh, disabl
               >
                 {item.note}
               </span>
+            ) : (
+              <button
+                type="button"
+                className={styles.addNoteBtn}
+                title={t("plugins.edit_account_note")}
+                onClick={() => setEditingNote(true)}
+              >
+                <Icon icon={editIcon} size="0.75em" />
+                <span>+ {t("models.notes")}</span>
+              </button>
             )}
-            <button
-              type="button"
-              className={styles.editNoteBtn}
-              title={t("plugins.edit_account_note")}
-              onClick={() => setEditingNote(true)}
-            >
-              <Icon icon={editIcon} size="0.75em" />
-            </button>
+            {item.note && (
+              <button
+                type="button"
+                className={styles.editNoteBtn}
+                title={t("plugins.edit_account_note")}
+                onClick={() => setEditingNote(true)}
+              >
+                <Icon icon={editIcon} size="0.75em" />
+              </button>
+            )}
             <span
               className={`${styles.stateBadge} ${
                 item.state.status === "disabled"

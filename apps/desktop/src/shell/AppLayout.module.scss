@@ -99,6 +99,31 @@
   }
 }
 
+.cursorActiveText {
+  color: #27c376 !important;
+  font-weight: 600;
+}
+
+.cursorStatusDot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: #8a8f98;
+  transition: all 0.2s ease;
+
+  &[data-taken="true"] {
+    background: #27c376;
+    box-shadow: 0 0 6px rgba(39, 195, 118, 0.6);
+  }
+
+  &[data-taken="false"] {
+    background: #ef4444;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+  }
+}
+
 .menuStatusTag {
   flex: 0 0 auto;
   margin-left: auto;
