@@ -18,7 +18,6 @@ export function CombosPage() {
   const [combos, setCombos] = useState<RouterCombo[]>([]);
   const [deletingCombo, setDeletingCombo] = useState<RouterCombo | null>(null);
 
-  // Auto Router state
   const [autoConfig, setAutoConfig] = useState<AutoRouterConfig>({
     enabled: true,
     coding_slots: [],
@@ -32,33 +31,45 @@ export function CombosPage() {
     updated_at_ms: 0,
   });
 
-  // New combo inline creation draft
   const [showCreateCombo, setShowCreateCombo] = useState(false);
   const [comboName, setComboName] = useState("");
   const [comboStrategy, setComboStrategy] = useState<"fallback" | "round_robin">("fallback");
   const [selectedModelList, setSelectedModelList] = useState<string[]>([]);
+  const [activeAccountFilter, setActiveAccountFilter] = useState<string>("all");
 
-  // Collect all usable model IDs across plugins and manual configs grouped with provider name
-  const allAvailableModels = useMemo(() => {
-    const list: Array<{ id: string; name: string; provider: string }> = [];
+  // Group models logically by their accounts/providers
+  const { accountsList, modelsByAccount } = useMemo(() => {
+    const accMap = new Map<string, { id: string; name: string; type: string }>();
+    const modMap = new Map<string, Array<{ id: string; name: string; modelId: string }>>();
+
+    // 1. Plugin Accounts & Models
     const pModels = configuredPluginModels(plugins);
-    for (const m of pModels) {
-      list.push({
-        id: m.id,
-        name: m.displayName || m.modelId,
-        provider: m.pluginName || "Dahili Sağlayıcı",
-      });
-    }
-    for (const m of models) {
-      if (!list.some((item) => item.id === m.model_id)) {
-        list.push({
-          id: m.model_id,
-          name: m.display_name || m.model_id,
-          provider: m.group_name || "Manuel API",
-        });
+    for (const pm of pModels) {
+      const accKey = pm.pluginId;
+      if (!accMap.has(accKey)) {
+        accMap.set(accKey, { id: accKey, name: pm.pluginName, type: "Hesap" });
       }
+      const existing = modMap.get(accKey) || [];
+      existing.push({ id: pm.id, name: pm.displayName || pm.modelId, modelId: pm.modelId });
+      modMap.set(accKey, existing);
     }
-    return list;
+
+    // 2. Manual Models
+    if (models.length > 0) {
+      const manualKey = "custom-manual";
+      accMap.set(manualKey, { id: manualKey, name: "Özel API Modelleri", type: "Manuel" });
+      const manModels = models.map((m) => ({
+        id: m.model_id,
+        name: m.display_name || m.model_id,
+        modelId: m.model_id,
+      }));
+      modMap.set(manualKey, manModels);
+    }
+
+    return {
+      accountsList: Array.from(accMap.values()),
+      modelsByAccount: modMap,
+    };
   }, [plugins, models]);
 
   const loadData = async () => {
@@ -184,7 +195,7 @@ export function CombosPage() {
 
   const content = (
     <div className={styles.page}>
-      {/* ── BÖLÜM 1: Cursor Auto Router (Akıllı Yönlendirici) ── */}
+      {/* ── BÖLÜM 1: Çekirdek Yönlendirme Çalışma Mantığı Bilgi Kartı ── */}
       <Card className={styles.card}>
         <div className={styles.cardHeader}>
           <div className={styles.titleGroup}>
@@ -192,13 +203,13 @@ export function CombosPage() {
               <Icon icon={boltIcon} size="1.2em" />
             </span>
             <div>
-              <h3>Auto Router (Akıllı Yönlendirici)</h3>
-              <p>Model olarak <code>auto-smart</code> seçildiğinde istek tipine göre modeli otomatik belirler.</p>
+              <h3>Nexusor Akıllı Model Motoru ve Otomatik Failover</h3>
+              <p>Herhangi bir model seçildiğinde (örn: Gemini veya Claude), o modelin kotası biterse veya 429 alınırsa Nexusor istek bazında otomatik olarak sıradaki sağlıklı hesaba geçer.</p>
             </div>
           </div>
           <Switch
             checked={autoConfig.enabled}
-            label={autoConfig.enabled ? "Auto Mod: Açık" : "Auto Mod: Kapalı"}
+            label={autoConfig.enabled ? "Auto Router: Aktif" : "Auto Router: Kapalı"}
             onChange={toggleAutoRouter}
           />
         </div>
@@ -206,7 +217,7 @@ export function CombosPage() {
         <div className={styles.autoGrid}>
           {/* 1. Kodlama */}
           <div className={styles.autoCategory}>
-            <span className={styles.catTitle}>💻 Kodlama Görevleri (Coding)</span>
+            <span className={styles.catTitle}>Kodlama Görevleri (Coding)</span>
             <span className={styles.catDesc}>Kod yazma, düzenleme ve dosya analizleri</span>
             <select
               className={styles.selectBox}
@@ -214,46 +225,58 @@ export function CombosPage() {
               onChange={(e) => updateAutoPrimaryModel("coding", e.target.value)}
             >
               <option value="">(Otomatik - En Uygun Modeli Seç)</option>
-              {allAvailableModels.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name} [{m.provider}]
-                </option>
+              {accountsList.map((acc) => (
+                <optgroup key={acc.id} label={acc.name}>
+                  {(modelsByAccount.get(acc.id) || []).map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>
 
           {/* 2. Düşünme */}
           <div className={styles.autoCategory}>
-            <span className={styles.catTitle}>🧠 Derin Akıl Yürütme (Reasoning)</span>
-            <span className={styles.catDesc}>Karmaşık mimari planlar ve matematik</span>
+            <span className={styles.catTitle}>Derin Akıl Yürütme (Reasoning)</span>
+            <span className={styles.catDesc}>Karmaşık mantık, mimari ve planlama</span>
             <select
               className={styles.selectBox}
               value={autoConfig.reasoning_slots[0]?.model_id || ""}
               onChange={(e) => updateAutoPrimaryModel("reasoning", e.target.value)}
             >
               <option value="">(Otomatik - Düşünme Modelini Seç)</option>
-              {allAvailableModels.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name} [{m.provider}]
-                </option>
+              {accountsList.map((acc) => (
+                <optgroup key={acc.id} label={acc.name}>
+                  {(modelsByAccount.get(acc.id) || []).map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>
 
           {/* 3. Hızlı */}
           <div className={styles.autoCategory}>
-            <span className={styles.catTitle}>⚡ Hızlı Tamamlama & Tab (Fast)</span>
-            <span className={styles.catDesc}>Satır içi tamamlama ve kısa sorular</span>
+            <span className={styles.catTitle}>Hızlı Tamamlama & Tab (Fast)</span>
+            <span className={styles.catDesc}>Satır içi tamamlama ve anlık sorular</span>
             <select
               className={styles.selectBox}
               value={autoConfig.fast_slots[0]?.model_id || ""}
               onChange={(e) => updateAutoPrimaryModel("fast", e.target.value)}
             >
               <option value="">(Otomatik - En Hızlı Modeli Seç)</option>
-              {allAvailableModels.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name} [{m.provider}]
-                </option>
+              {accountsList.map((acc) => (
+                <optgroup key={acc.id} label={acc.name}>
+                  {(modelsByAccount.get(acc.id) || []).map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>
@@ -264,8 +287,8 @@ export function CombosPage() {
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         <div className={styles.sectionHeading}>
           <div>
-            <h3>Özel Yedekleme Zincirleri (Failover)</h3>
-            <p>Biri hata verirse veya kotası biterse sıradaki modelin devreye girmesi için sıralı zincirler.</p>
+            <h3>Özel Sıralı Yedekleme Zincirleri (Failover Chains)</h3>
+            <p>Belirli modeller arasında zorunlu bir geçiş zinciri kurmak için (Örn: Claude biterse Gemini devreye girsin).</p>
           </div>
           <Button
             variant={showCreateCombo ? "secondary" : "primary"}
@@ -276,13 +299,13 @@ export function CombosPage() {
           </Button>
         </div>
 
-        {/* Yeni Zincir Oluşturma Kutusu (Açılır-Kapanır Basit Form) */}
+        {/* Yeni Zincir Oluşturma Formu (Hesaplara Göre Gruplu ve Düzenli) */}
         {showCreateCombo && (
           <div className={styles.createCard}>
             <div className={styles.createRow}>
               <input
                 type="text"
-                placeholder="Zincir Adı (Örn: Claude -> Gemini Yedekleme)"
+                placeholder="Zincir Adı (Örn: Claude Sonnet -> Gemini 2.5 Pro)"
                 value={comboName}
                 onChange={(e) => setComboName(e.target.value)}
               />
@@ -290,32 +313,74 @@ export function CombosPage() {
                 value={comboStrategy}
                 onChange={(e) => setComboStrategy(e.target.value as "fallback" | "round_robin")}
               >
-                <option value="fallback">Failover (Sırayla Yedekle)</option>
-                <option value="round_robin">Round-Robin (Dönüşümlü Yük Dağıt)</option>
+                <option value="fallback">Failover (Biri biterse sıradakine geç)</option>
+                <option value="round_robin">Round-Robin (Her istekte sırayla döndür)</option>
               </select>
             </div>
 
+            {/* Hesap Seçim Sekmeleri */}
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "10px" }}>
+              <button
+                type="button"
+                style={{
+                  padding: "4px 10px",
+                  fontSize: "12px",
+                  borderRadius: "4px",
+                  border: "none",
+                  cursor: "pointer",
+                  background: activeAccountFilter === "all" ? "rgba(255,255,255,0.15)" : "transparent",
+                  color: activeAccountFilter === "all" ? "#fff" : "rgba(255,255,255,0.6)",
+                }}
+                onClick={() => setActiveAccountFilter("all")}
+              >
+                Tüm Hesaplar
+              </button>
+              {accountsList.map((acc) => (
+                <button
+                  key={acc.id}
+                  type="button"
+                  style={{
+                    padding: "4px 10px",
+                    fontSize: "12px",
+                    borderRadius: "4px",
+                    border: "none",
+                    cursor: "pointer",
+                    background: activeAccountFilter === acc.id ? "rgba(255,255,255,0.15)" : "transparent",
+                    color: activeAccountFilter === acc.id ? "#fff" : "rgba(255,255,255,0.6)",
+                  }}
+                  onClick={() => setActiveAccountFilter(acc.id)}
+                >
+                  {acc.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Modeller Listesi */}
             <div className={styles.slotPicker}>
               <span className={styles.slotPickerLabel}>
-                Zincire Eklenecek Modelleri Sırayla Seçin (Sağlayıcısına göre tıklayın):
+                Zincire Eklenecek Modelleri Sırayla Tıklayın ({selectedModelList.length} seçildi):
               </span>
               <div className={styles.slotChips}>
-                {allAvailableModels.map((m) => {
-                  const isSelected = selectedModelList.includes(m.id);
-                  const orderIdx = selectedModelList.indexOf(m.id);
-                  return (
-                    <button
-                      key={m.id}
-                      type="button"
-                      className={`${styles.slotChip} ${isSelected ? styles.slotChipSelected : ""}`}
-                      onClick={() => toggleModelInNewCombo(m.id)}
-                    >
-                      {isSelected && <strong>{orderIdx + 1}.</strong>}
-                      <span>{cleanName(m.id)}</span>
-                      <small style={{ opacity: 0.6, fontSize: "10px", marginLeft: "4px" }}>({m.provider})</small>
-                    </button>
-                  );
-                })}
+                {accountsList
+                  .filter((acc) => activeAccountFilter === "all" || activeAccountFilter === acc.id)
+                  .flatMap((acc) =>
+                    (modelsByAccount.get(acc.id) || []).map((m) => {
+                      const isSelected = selectedModelList.includes(m.id);
+                      const orderIdx = selectedModelList.indexOf(m.id);
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          className={`${styles.slotChip} ${isSelected ? styles.slotChipSelected : ""}`}
+                          onClick={() => toggleModelInNewCombo(m.id)}
+                        >
+                          {isSelected && <strong>{orderIdx + 1}.</strong>}
+                          <span>{m.name}</span>
+                          <span style={{ fontSize: "10px", opacity: 0.5, marginLeft: 4 }}>({acc.name})</span>
+                        </button>
+                      );
+                    })
+                  )}
               </div>
             </div>
 
