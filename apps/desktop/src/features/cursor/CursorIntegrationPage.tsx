@@ -8,9 +8,7 @@ import { ConfirmDialog } from "../../shared/ui/ConfirmDialog";
 import { Card } from "../../shared/ui/Card";
 import { Switch } from "../../shared/ui/Switch";
 import { Button } from "../../shared/ui/Button";
-import { TooltipTrigger } from "../../shared/ui/TooltipTrigger";
 import { useMessage } from "../../shared/ui/message";
-import { PageActions } from "../../shell/PageActions";
 import { appStore, useAppStore } from "../../shared/store/appStore";
 import { TabSettingsCard } from "../settings/TabSettingsCard";
 import { CommitSettingsCard } from "../settings/CommitSettingsCard";
@@ -46,9 +44,6 @@ export function CursorIntegrationPage() {
 
   const caReady = cursorHarness?.ca === "ready";
   const cursorTakenOver = cursorHarness?.settings_applied ?? false;
-  const takeoverLabel = cursorTakenOver
-    ? t("cursor.disable_cursor_takeover")
-    : t("cursor.enable_cursor_takeover");
 
   useEffect(() => {
     let disposed = false;
@@ -159,6 +154,17 @@ export function CursorIntegrationPage() {
       >
         <div className={pageStyles.page}>
           <Card className={pageStyles.statusCard}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <strong style={{ fontSize: "14px", color: "#f7f8f8" }}>Cursor IDE Bağlantı Durumu</strong>
+              <Button
+                size="small"
+                variant="secondary"
+                disabled={cursorBusy || repairing}
+                onClick={() => void handleRepair()}
+              >
+                {repairing ? t("common.processing") : t("cursor.repair_button")}
+              </Button>
+            </div>
             <div className={pageStyles.statusGrid}>
               <StatusItem
                 label={t("cursor.ca_status")}
@@ -259,35 +265,6 @@ export function CursorIntegrationPage() {
 
   return (
     <>
-      {selectedClient === "cursor" && (
-        <PageActions position="left">
-          <div className={styles.takeoverActions}>
-            <span className={styles.takeoverStatus}>
-              {cursorTakenOver ? t("cursor.taken_over") : t("cursor.not_taken_over")}
-            </span>
-            <TooltipTrigger label={takeoverLabel}>
-              <Switch
-                checked={cursorTakenOver}
-                disabled={cursorBusy || (!cursorTakenOver && !caReady)}
-                label={takeoverLabel}
-                onChange={(enabled) => {
-                  if (enabled) void appStore.setCursorEnabled(true);
-                  else setConfirmDisableTakeover(true);
-                }}
-              />
-            </TooltipTrigger>
-            <Button
-              size="small"
-              variant="secondary"
-              disabled={cursorBusy || repairing}
-              onClick={() => void handleRepair()}
-            >
-              {repairing ? t("common.processing") : t("cursor.repair_button")}
-            </Button>
-          </div>
-        </PageActions>
-      )}
-
       <PageContent
         title={t("nav.clients_and_ides")}
         sections={[
@@ -306,7 +283,7 @@ export function CursorIntegrationPage() {
                     <img src={providerLogos.antigravity} alt="" className={masterStyles.clientLogo} />
                     <div className={masterStyles.clientInfo}>
                       <span className={masterStyles.clientTitle}>Cursor IDE</span>
-                      <span className={masterStyles.clientSubtitle}>Sıfır-Patch Vekil Sunucu</span>
+                      <span className={masterStyles.clientSubtitle}>{cursorTakenOver ? "Vekil Sunucu Aktif" : "Bağlantı Bekliyor"}</span>
                     </div>
                     {cursorTakenOver && <span className={masterStyles.activeIndicator} title="Aktif" />}
                   </button>

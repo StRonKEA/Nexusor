@@ -18,7 +18,7 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 14px;
 }
 
 .headerLeft {
@@ -34,6 +34,11 @@
   background: #27c376;
   box-shadow: 0 0 8px rgba(39, 195, 118, 0.6);
   flex-shrink: 0;
+
+  &[data-active="false"] {
+    background: #6b7280;
+    box-shadow: none;
+  }
 }
 
 .title {
@@ -43,10 +48,33 @@
   color: #f7f8f8;
 }
 
-.subtitle {
-  margin: 2px 0 0;
+// ─── Header Sağ Taraf: Master Switch ve Aksiyonlar ──────────────────────────
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.takeoverControl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.takeoverStatusText {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.45);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+
+  &[data-active="true"] {
+    color: #27c376;
+    font-weight: 600;
+  }
 }
 
 .protocolTabs {
@@ -93,7 +121,7 @@
 .content {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .fieldRow {
@@ -155,42 +183,5 @@
 
   &:hover {
     background: rgba(255, 255, 255, 0.15);
-  }
-}
-
-.presetsRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding-top: 4px;
-}
-
-.presetsLabel {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.45);
-}
-
-.presetButtons {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.presetBtn {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.09);
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.15);
   }
 }
