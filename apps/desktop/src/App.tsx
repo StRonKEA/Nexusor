@@ -8,10 +8,9 @@ import { AppLayout } from "./shell/AppLayout";
 import { CallsPage } from "./features/calls/CallsPage";
 import { CallDetailsPage } from "./features/calls/CallDetailsPage";
 import { CombosPage } from "./features/combos/CombosPage";
-import { CursorSettingsPage } from "./features/models/CursorSettingsPage";
+import { ModelsAndProvidersPage } from "./features/models/ModelsAndProvidersPage";
 import { CursorIntegrationPage } from "./features/cursor/CursorIntegrationPage";
 import { HomePage } from "./features/home/HomePage";
-import { ProvidersPage } from "./features/providers/ProvidersPage";
 import { ProviderDetailPage } from "./features/providers/ProviderDetailPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { useAppStore } from "./shared/store/appStore";
@@ -25,9 +24,9 @@ export function App() {
             <Route element={<AppLayout />}>
               <Route index element={<HomePage />} />
               <Route path="cursor" element={<CursorIntegrationPage />} />
-              <Route path="providers" element={<ProvidersPage />} />
+              <Route path="models" element={<ModelsAndProvidersPage />} />
+              <Route path="providers" element={<Navigate to="/models" replace />} />
               <Route path="providers/:pluginId" element={<ProviderDetailPage />} />
-              <Route path="models" element={<CursorSettingsPage />} />
               <Route path="combos" element={<CombosPage />} />
               <Route path="calls" element={<CallsPage />} />
               <Route path="calls/:callId" element={<CallDetailsPage />} />

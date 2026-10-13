@@ -13,7 +13,6 @@ import {
   cursorIcon,
   homeIcon,
   modelsIcon,
-  providerIcon,
   refreshIcon,
   settingsIcon,
 } from "../shared/ui/icons";
@@ -38,8 +37,7 @@ export function AppLayout() {
     { kind: "page", path: "/", label: t("nav.overview"), icon: homeIcon, end: true },
     { kind: "page", path: "/cursor", label: t("nav.clients_and_ides"), icon: cursorIcon },
     { kind: "group", label: t("nav.resources") },
-    { kind: "page", path: "/providers", label: t("nav.providers"), icon: providerIcon },
-    { kind: "page", path: "/models", label: t("nav.models"), icon: modelsIcon },
+    { kind: "page", path: "/models", label: t("nav.models_and_providers"), icon: modelsIcon },
     { kind: "page", path: "/combos", label: t("nav.routing"), icon: combosIcon },
     { kind: "group", label: t("nav.observability") },
     { kind: "page", path: "/calls", label: t("nav.calls"), icon: activityIcon },
