@@ -48,28 +48,35 @@
   color: #f7f8f8;
 }
 
-// ─── Header Sağ Taraf: Master Switch ve Aksiyonlar ──────────────────────────
+// ─── Header Sağ Taraf: İki Bağımsız Anahtar ve Sekmeler ─────────────────────
 .headerRight {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
-.takeoverControl {
+.switchesGroup {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+.switchBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   background: rgba(0, 0, 0, 0.3);
-  padding: 4px 12px;
+  padding: 4px 10px;
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.takeoverStatusText {
+.switchStatusText {
   font-size: 12px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.65);
 
   &[data-active="true"] {
     color: #27c376;
@@ -80,7 +87,7 @@
 .protocolTabs {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   background: rgba(0, 0, 0, 0.3);
   padding: 3px;
   border-radius: 6px;

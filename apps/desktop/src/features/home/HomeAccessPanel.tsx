@@ -18,6 +18,11 @@ export function HomeAccessPanel() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [confirmDisableTakeover, setConfirmDisableTakeover] = useState(false);
 
+  // Yerel API Servisi (Port 6817) durumu (Varsayılan olarak Nexusor açıkken aktiftir)
+  const [apiServiceEnabled, setApiServiceEnabled] = useState<boolean>(() => {
+    return localStorage.getItem("nexusor_api_service_enabled") !== "false";
+  });
+
   const servicePort = ports.service_port || 6817;
   const baseUrlOpenAI = `http://127.0.0.1:${servicePort}/v1`;
   const baseUrlClaude = `http://127.0.0.1:${servicePort}`;
@@ -25,7 +30,17 @@ export function HomeAccessPanel() {
   const cursorTakenOver = cursorHarness?.settings_applied ?? false;
   const caReady = cursorHarness?.ca === "ready";
 
+  const toggleApiService = (enabled: boolean) => {
+    setApiServiceEnabled(enabled);
+    localStorage.setItem("nexusor_api_service_enabled", String(enabled));
+    message(enabled ? "Yerel API Servisi Etkinleştirildi" : "Yerel API Servisi Devre Dışı Bırakıldı");
+  };
+
   const copyToClipboard = async (text: string, fieldName: string) => {
+    if (!apiServiceEnabled) {
+      message("Yerel API servisi kapalı durumdayken istek atılamaz. Önce anahtarı açın.");
+      return;
+    }
     try {
       await navigator.clipboard.writeText(text);
       setCopiedField(fieldName);
@@ -41,28 +56,45 @@ export function HomeAccessPanel() {
       <div className={styles.accessPanel}>
         <div className={styles.header}>
           <div className={styles.headerLeft}>
-            <div className={styles.statusDot} data-active={cursorTakenOver ? "true" : "false"} />
+            <div
+              className={styles.statusDot}
+              data-active={apiServiceEnabled || cursorTakenOver ? "true" : "false"}
+            />
             <h4 className={styles.title}>{t("home.api_gateway_title")}</h4>
           </div>
 
           <div className={styles.headerRight}>
-            {/* ── Cursor BYOK / Proxy Açma-Kapama Anahtarı (Master Switch) ── */}
-            <div className={styles.takeoverControl}>
-              <span className={styles.takeoverStatusText} data-active={cursorTakenOver ? "true" : "false"}>
-                {cursorTakenOver ? "Cursor BYOK Aktif" : "Cursor BYOK Kapalı"}
-              </span>
-              <Switch
-                checked={cursorTakenOver}
-                disabled={cursorBusy || (!cursorTakenOver && !caReady)}
-                label="Cursor BYOK"
-                onChange={(enabled) => {
-                  if (enabled) void appStore.setCursorEnabled(true);
-                  else setConfirmDisableTakeover(true);
-                }}
-              />
+            <div className={styles.switchesGroup}>
+              {/* ── 1. Anahtar: Yerel API Servisi (OpenAI / Claude Port 6817) ── */}
+              <div className={styles.switchBox}>
+                <span className={styles.switchStatusText} data-active={apiServiceEnabled ? "true" : "false"}>
+                  {apiServiceEnabled ? "API Servisi: Açık" : "API Servisi: Kapalı"}
+                </span>
+                <Switch
+                  checked={apiServiceEnabled}
+                  label="API Servisi"
+                  onChange={toggleApiService}
+                />
+              </div>
+
+              {/* ── 2. Anahtar: Cursor Entegrasyonu (Proxy Port 6332) ── */}
+              <div className={styles.switchBox}>
+                <span className={styles.switchStatusText} data-active={cursorTakenOver ? "true" : "false"}>
+                  {cursorTakenOver ? "Cursor: Bağlı" : "Cursor: Kapalı"}
+                </span>
+                <Switch
+                  checked={cursorTakenOver}
+                  disabled={cursorBusy || (!cursorTakenOver && !caReady)}
+                  label="Cursor Entegrasyonu"
+                  onChange={(enabled) => {
+                    if (enabled) void appStore.setCursorEnabled(true);
+                    else setConfirmDisableTakeover(true);
+                  }}
+                />
+              </div>
             </div>
 
-            {/* ── Protokol Sekmeleri ── */}
+            {/* ── Protokol Seçim Sekmeleri ── */}
             <div className={styles.protocolTabs}>
               <button
                 type="button"
@@ -70,7 +102,7 @@ export function HomeAccessPanel() {
                 onClick={() => setActiveProtocol("openai")}
               >
                 <img src={providerLogos.openai} alt="" className={styles.protocolIcon} />
-                <span>OpenAI API</span>
+                <span>OpenAI</span>
               </button>
               <button
                 type="button"
@@ -78,7 +110,7 @@ export function HomeAccessPanel() {
                 onClick={() => setActiveProtocol("claude")}
               >
                 <img src={providerLogos.anthropic} alt="" className={styles.protocolIcon} />
-                <span>Claude API</span>
+                <span>Claude</span>
               </button>
             </div>
           </div>
@@ -92,12 +124,12 @@ export function HomeAccessPanel() {
               </span>
               <span className={styles.fieldHint}>
                 {activeProtocol === "openai"
-                  ? "Cline, Continue, Aider, Chatbox vb. için Base URL"
-                  : "Claude Code CLI, Anthropic SDK veya Claude destekli araçlar için Base URL"}
+                  ? "Cline, Continue, Aider, Chatbox vb. için Base URL (Port 6817)"
+                  : "Claude Code CLI, Anthropic SDK veya Claude destekli araçlar için Base URL (Port 6817)"}
               </span>
             </div>
             <div className={styles.copyBox}>
-              <code className={styles.codeText}>
+              <code className={styles.codeText} style={{ opacity: apiServiceEnabled ? 1 : 0.45 }}>
                 {activeProtocol === "openai" ? baseUrlOpenAI : baseUrlClaude}
               </code>
               <button
