@@ -6,6 +6,71 @@ use crate::model::{
 };
 use serde_json::Value;
 
+/// Normalizes model id and extracts reasoning effort if suffixed (e.g., `-high`, `-thinking`, `-low`).
+/// Returns `(base_model_id, Option<extracted_effort>)`.
+pub fn normalize_model_id_and_effort(raw_model: &str) -> (String, Option<String>) {
+    let trimmed = raw_model.trim();
+    let lower = trimmed.to_ascii_lowercase();
+
+    for (suffix, effort) in [
+        ("-high", "high"),
+        ("-thinking", "high"),
+        ("-medium", "medium"),
+        ("-low", "low"),
+        ("-minimal", "minimal"),
+    ] {
+        if lower.ends_with(suffix) {
+            let base_len = trimmed.len() - suffix.len();
+            let base = &trimmed[..base_len];
+            if !base.is_empty() {
+                return (base.to_string(), Some(effort.to_string()));
+            }
+        }
+    }
+
+    (trimmed.to_string(), None)
+}
+
+/// Resolves a requested model name to an available model, supporting fallback to plugin models.
+/// For example, if a user requests bare "gpt-4o" or "claude-3-5-sonnet", this matches against
+/// configured models or active plugins (Antigravity, Codex, etc.).
+pub async fn resolve_model_fallback(
+    registry: &crate::cursor::transport::TransportRegistry,
+    requested_model: &str,
+) -> String {
+    let (base_model, _) = normalize_model_id_and_effort(requested_model);
+
+    // 1. Direct match with configured models in store
+    if let Ok(configs) = registry.store().models().await {
+        for config in &configs {
+            if config.model_id.eq_ignore_ascii_case(&base_model) {
+                return config.model_id.clone();
+            }
+        }
+    }
+
+    // 2. Direct match with plugin models
+    if let Some(plugins) = registry.plugins() {
+        let plugin_models = plugins.configured_models().await;
+        // Exact match
+        for m in &plugin_models {
+            if m.model_id.eq_ignore_ascii_case(&base_model) {
+                return m.model_id.clone();
+            }
+        }
+        // Substring / suffix match (e.g. "gpt-4o" matches "plugin:.../antigravity/gpt-4o")
+        for m in &plugin_models {
+            if m.model_id.ends_with(&format!("/{base_model}"))
+                || m.model_id.eq_ignore_ascii_case(&base_model)
+            {
+                return m.model_id.clone();
+            }
+        }
+    }
+
+    requested_model.to_string()
+}
+
 /// Maps a thinking budget in tokens to discrete reasoning effort level.
 /// Matches CLIProxyAPI's `internal/thinking/convert.go` threshold mapping.
 pub fn budget_to_reasoning_effort(budget: i64) -> Option<String> {

@@ -72,7 +72,11 @@ async fn claude_messages(
     let tools = parse_claude_tools(payload.tools.as_ref());
     let history = parse_claude_messages(&payload.messages);
 
-    let mut model_spec = ModelSpec::new(&payload.model);
+    // Normalize model ID and extract reasoning effort suffix if present (e.g., -high, -thinking)
+    let (base_model, extracted_effort) = crate::api::common::normalize_model_id_and_effort(&payload.model);
+    let resolved_model = crate::api::common::resolve_model_fallback(&registry, &base_model).await;
+
+    let mut model_spec = ModelSpec::new(&resolved_model);
     model_spec.max_output_tokens = payload.max_tokens.or(Some(4096));
 
     // Thinking budget mapping from CLIProxyAPI
@@ -84,6 +88,9 @@ async fn claude_messages(
                 model_spec.reasoning.enabled = true;
             }
         }
+    } else if let Some(effort) = extracted_effort {
+        model_spec.reasoning.effort = Some(effort);
+        model_spec.reasoning.enabled = true;
     }
 
     let invocation = ModelInvocation {
