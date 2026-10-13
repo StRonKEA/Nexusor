@@ -33,6 +33,8 @@ const FEATURE_GATES: &[&str] = &[
     "mcp_input_schema_json",
     "local_computer_use",
     "windows_computer_use_batch",
+    "instant_grep_indexing",
+    "instant_grep_user_search",
     "glass_custom_modes",
 ];
 const LOCAL_RULE: &str = "local_enabled";
@@ -218,6 +220,8 @@ mod tests {
                 "mcp_input_schema_json",
                 "local_computer_use",
                 "windows_computer_use_batch",
+                "instant_grep_indexing",
+                "instant_grep_user_search",
                 "glass_custom_modes",
             ]
         );

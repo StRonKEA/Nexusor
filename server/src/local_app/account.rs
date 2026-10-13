@@ -48,6 +48,8 @@ fn feature_flag_overrides() -> String {
         "mcp_input_schema_json": {"value": true, "expiresAt": null},
         "local_computer_use": {"value": true, "expiresAt": null},
         "windows_computer_use_batch": {"value": true, "expiresAt": null},
+        "instant_grep_indexing": {"value": true, "expiresAt": null},
+        "instant_grep_user_search": {"value": true, "expiresAt": null},
         // Gates the turn-completion handler that reopens a turn while a
         // `CreateGoal` goal is active. Without it `CreateGoal`/`UpdateGoal` would
         // record a goal that nothing ever continues, which is the dead promise
@@ -776,6 +778,8 @@ mod tests {
             [
                 "agent_goal_continuation",
                 "explicit_subagent_models",
+                "instant_grep_indexing",
+                "instant_grep_user_search",
                 "local_computer_use",
                 "mcp_input_schema_json",
                 "meta_mcp_tool",

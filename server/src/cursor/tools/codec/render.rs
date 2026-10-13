@@ -228,9 +228,10 @@ pub fn tool_placeholder(name: &str, call_id: &str) -> Result<pb::ToolCall> {
         "replaceenv" => Tool::ReplaceEnvToolCall(pb::ReplaceEnvToolCall::default()),
         "readlints" => Tool::ReadLintsToolCall(pb::ReadLintsToolCall::default()),
         "callmcptool" => Tool::McpToolCall(pb::McpToolCall::default()),
-        "semanticsearch" | "semblesearch" => {
+        "semanticsearch" | "semblesearch" | "deepsearch" | "gotodefinition" | "searchsymbols" => {
             Tool::SemSearchToolCall(pb::SemSearchToolCall::default())
         }
+        "creatediagram" => Tool::CreatePlanToolCall(pb::CreatePlanToolCall::default()),
         "createplan" => Tool::CreatePlanToolCall(pb::CreatePlanToolCall::default()),
         "await" => Tool::AwaitToolCall(pb::AwaitToolCall::default()),
         "sendtouser" => Tool::SendToUserToolCall(pb::SendToUserToolCall::default()),

@@ -76,7 +76,10 @@ pub(super) async fn start(
         "await" => wait::start(runtime, results, call),
         "sendtouser" | "sendmessage" | "sendfinalsummary" | "reflect" | "creategoal"
         | "updategoal" => messaging::start(results, call),
-        "semanticsearch" | "semblesearch" => search::start(results, call, store.cloned()),
+        "semanticsearch" | "semblesearch" | "deepsearch" | "gotodefinition" | "searchsymbols" => {
+            search::start(results, call, store.cloned())
+        }
+        "creatediagram" => messaging::start(results, call),
         "searchconversations" => conversation_search::start(results, call, store.cloned()),
         _ => Ok(unavailable_tool(call)),
     }
