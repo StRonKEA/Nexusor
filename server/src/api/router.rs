@@ -4,6 +4,7 @@ use crate::{cursor::transport::TransportRegistry, network::NetworkClients, Resul
 
 pub fn router(registry: TransportRegistry, clients: NetworkClients) -> Result<axum::Router> {
     let cursor_router = super::cursor::router(registry.clone(), clients)?;
-    let openai_router = super::openai::router(registry);
-    Ok(cursor_router.merge(openai_router))
+    let openai_router = super::openai::router(registry.clone());
+    let claude_router = super::claude::router(registry);
+    Ok(cursor_router.merge(openai_router).merge(claude_router))
 }
