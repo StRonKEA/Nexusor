@@ -32,7 +32,7 @@ struct SearchArguments {
     #[serde(default)]
     file_path: Option<String>,
     #[serde(default)]
-    line: Option<usize>,
+    _line: Option<usize>,
     #[serde(default = "default_top_k")]
     top_k: usize,
     #[serde(default = "default_snippet_lines")]
@@ -70,6 +70,34 @@ pub(crate) async fn execute(
     }
 
     let engine = engine(store).await.map_err(|error| error.to_string())?;
+
+    if tool_name == "gotodefinition" {
+        let repo_path = std::path::PathBuf::from(&args.repo);
+        let symbol_name = args.query.clone();
+        return tokio::task::spawn_blocking(move || {
+            engine
+                .goto_definition(&repo_path, &symbol_name)
+                .map(|defs| serde_json::to_value(defs).unwrap_or(Value::Null))
+        })
+        .await
+        .map_err(|error| format!("Semble definition worker failed: {error}"))?
+        .map_err(|error| error.to_string());
+    }
+
+    if tool_name == "searchsymbols" {
+        let repo_path = std::path::PathBuf::from(&args.repo);
+        let filter = if args.query.is_empty() { None } else { Some(args.query.clone()) };
+        let limit = args.top_k.max(10);
+        return tokio::task::spawn_blocking(move || {
+            engine
+                .search_symbols(&repo_path, filter.as_deref(), limit)
+                .map(|symbols| serde_json::to_value(symbols).unwrap_or(Value::Null))
+        })
+        .await
+        .map_err(|error| format!("Semble symbol worker failed: {error}"))?
+        .map_err(|error| error.to_string());
+    }
+
     tokio::task::spawn_blocking(move || {
         engine
             .search(SearchRequest {

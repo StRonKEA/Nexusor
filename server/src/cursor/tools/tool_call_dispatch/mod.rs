@@ -64,19 +64,26 @@ pub(super) async fn start(
 
     match normalized(&call.name).as_str() {
         "shell" | "bash" | "read" | "delete" | "grep" | "glob" | "ls" | "readlints" | "task"
-        | "callmcptool" | "fetchmcpresource" | "listmcpresources" | "getmcptools" => {
+        | "callmcptool" | "fetchmcpresource" | "listmcpresources" | "getmcptools"
+        | "readfile" | "readfilev2" | "deletefile" | "filesearch" | "globfilesearch"
+        | "ripgrepsearch" | "ripgreprawsearch" | "listdirv2" | "taskv2"
+        | "fixlints" | "connectscm" => {
             exec::start(runtime, call, context).await
         }
-        "write" | "strreplace" | "editnotebook" | "applypatch" => {
+        "write" | "strreplace" | "editnotebook" | "applypatch" | "editfile" | "editfilev2"
+        | "reapply" | "applyagentdiff" => {
             edit::start(runtime, call, context).await
         }
         "askquestion" | "websearch" | "webfetch" | "switchmode" | "createplan"
-        | "generateimage" => interaction::start(runtime, call).await,
-        "todowrite" | "updatecurrentstep" => local::start(call, message_index),
-        "await" => wait::start(runtime, results, call),
+        | "generateimage" | "fetchrules" | "fetchpullrequest" => interaction::start(runtime, call).await,
+        "todowrite" | "updatecurrentstep" | "todoread" | "readproject" | "updateproject" => {
+            local::start(call, message_index)
+        }
+        "await" | "awaittask" => wait::start(runtime, results, call),
         "sendtouser" | "sendmessage" | "sendfinalsummary" | "reflect" | "creategoal"
-        | "updategoal" => messaging::start(results, call),
-        "semanticsearch" | "semblesearch" | "deepsearch" | "gotodefinition" | "searchsymbols" => {
+        | "updategoal" | "aiattribution" => messaging::start(results, call),
+        "semanticsearch" | "semblesearch" | "deepsearch" | "gotodefinition" | "searchsymbols"
+        | "semanticsearchfull" | "readsemsearchfiles" | "knowledgebase" => {
             search::start(results, call, store.cloned())
         }
         "creatediagram" => messaging::start(results, call),

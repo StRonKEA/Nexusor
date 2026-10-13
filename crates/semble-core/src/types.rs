@@ -45,6 +45,15 @@ impl SearchRequest {
     }
 }
 
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct SymbolDefinition {
+    pub symbol: String,
+    pub file_path: String,
+    pub line: usize,
+    pub implementation: bool,
+    pub snippet: Option<String>,
+}
+
 #[derive(Clone, Debug)]
 pub struct FindRelatedRequest {
     pub repo: PathBuf,

@@ -219,6 +219,33 @@ impl SymbolIndex {
         output
     }
 
+    pub fn find_definitions(&self, symbol: &str, chunks: &[Chunk]) -> Vec<(String, usize, bool)> {
+        let lower = symbol.to_ascii_lowercase();
+        let mut results = Vec::new();
+        if let Some(positions) = self.definitions_by_symbol.get(&lower) {
+            for &pos in positions {
+                let def = &self.definitions[pos];
+                if let Some(chunk) = chunks.get(def.chunk) {
+                    results.push((chunk.file_path.clone(), chunk.start_line, def.implementation));
+                }
+            }
+        }
+        results
+    }
+
+    pub fn list_all_symbols(&self, filter: Option<&str>, limit: usize) -> Vec<String> {
+        let filter_lower = filter.map(str::to_ascii_lowercase);
+        let mut symbols = self
+            .definitions_by_symbol
+            .keys()
+            .filter(|s| filter_lower.as_ref().is_none_or(|f| s.contains(f)))
+            .cloned()
+            .collect::<Vec<_>>();
+        symbols.sort();
+        symbols.truncate(limit);
+        symbols
+    }
+
     fn rank_symbol(&self, symbol: &str, chunks: &[Chunk], limit: usize) -> Vec<(usize, f32)> {
         let mut output = self
             .definitions_by_symbol

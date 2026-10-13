@@ -211,14 +211,14 @@ pub fn tool_completed(call: &ToolCall, completion: &ToolCompletion) -> pb::Agent
 pub fn tool_placeholder(name: &str, call_id: &str) -> Result<pb::ToolCall> {
     use pb::tool_call::Tool;
     let tool = match normalized(name).as_str() {
-        "shell" | "bash" => Tool::ShellToolCall(pb::ShellToolCall::default()),
-        "delete" => Tool::DeleteToolCall(pb::DeleteToolCall::default()),
-        "glob" => Tool::GlobToolCall(pb::GlobToolCall::default()),
-        "ls" | "listdir" => Tool::LsToolCall(pb::LsToolCall::default()),
-        "grep" => Tool::GrepToolCall(pb::GrepToolCall::default()),
-        "read" => Tool::ReadToolCall(pb::ReadToolCall::default()),
-        "todowrite" => Tool::UpdateTodosToolCall(pb::UpdateTodosToolCall::default()),
-        "strreplace" | "editnotebook" | "write" | "applypatch" => {
+        "shell" | "bash" | "runterminalcommandv2" => Tool::ShellToolCall(pb::ShellToolCall::default()),
+        "delete" | "deletefile" => Tool::DeleteToolCall(pb::DeleteToolCall::default()),
+        "glob" | "globfilesearch" => Tool::GlobToolCall(pb::GlobToolCall::default()),
+        "ls" | "listdir" | "listdirv2" => Tool::LsToolCall(pb::LsToolCall::default()),
+        "grep" | "ripgrepsearch" | "ripgreprawsearch" => Tool::GrepToolCall(pb::GrepToolCall::default()),
+        "read" | "readfile" | "readfilev2" => Tool::ReadToolCall(pb::ReadToolCall::default()),
+        "todowrite" | "todoread" | "readproject" | "updateproject" => Tool::UpdateTodosToolCall(pb::UpdateTodosToolCall::default()),
+        "strreplace" | "editnotebook" | "write" | "applypatch" | "editfile" | "editfilev2" | "reapply" | "applyagentdiff" => {
             Tool::EditToolCall(pb::EditToolCall::default())
         }
         "recordscreen" => Tool::RecordScreenToolCall(pb::RecordScreenToolCall::default()),
@@ -226,27 +226,28 @@ pub fn tool_placeholder(name: &str, call_id: &str) -> Result<pb::ToolCall> {
         "recordciinvestigationfindings" => Tool::RecordCiInvestigationFindingsToolCall(pb::RecordCiInvestigationFindingsToolCall::default()),
         "reportbugfixresults" => Tool::ReportBugfixResultsToolCall(pb::ReportBugfixResultsToolCall::default()),
         "replaceenv" => Tool::ReplaceEnvToolCall(pb::ReplaceEnvToolCall::default()),
-        "readlints" => Tool::ReadLintsToolCall(pb::ReadLintsToolCall::default()),
+        "readlints" | "fixlints" => Tool::ReadLintsToolCall(pb::ReadLintsToolCall::default()),
         "callmcptool" => Tool::McpToolCall(pb::McpToolCall::default()),
-        "semanticsearch" | "semblesearch" | "deepsearch" | "gotodefinition" | "searchsymbols" => {
+        "semanticsearch" | "semblesearch" | "deepsearch" | "gotodefinition" | "searchsymbols"
+        | "semanticsearchfull" | "readsemsearchfiles" | "knowledgebase" => {
             Tool::SemSearchToolCall(pb::SemSearchToolCall::default())
         }
         "creatediagram" => Tool::CreatePlanToolCall(pb::CreatePlanToolCall::default()),
         "createplan" => Tool::CreatePlanToolCall(pb::CreatePlanToolCall::default()),
-        "await" => Tool::AwaitToolCall(pb::AwaitToolCall::default()),
+        "await" | "awaittask" => Tool::AwaitToolCall(pb::AwaitToolCall::default()),
         "sendtouser" => Tool::SendToUserToolCall(pb::SendToUserToolCall::default()),
         "sendmessage" => Tool::SendMessageToolCall(pb::SendMessageToolCall::default()),
         "sendfinalsummary" => {
             Tool::SendFinalSummaryToolCall(pb::SendFinalSummaryToolCall::default())
         }
-        "reflect" => Tool::ReflectToolCall(pb::ReflectToolCall::default()),
+        "reflect" | "aiattribution" => Tool::ReflectToolCall(pb::ReflectToolCall::default()),
         "searchconversations" => {
             Tool::SearchConversationsToolCall(pb::SearchConversationsToolCall::default())
         }
         "creategoal" => Tool::CreateGoalToolCall(pb::CreateGoalToolCall::default()),
         "updategoal" => Tool::UpdateGoalToolCall(pb::UpdateGoalToolCall::default()),
         "websearch" => Tool::WebSearchToolCall(pb::WebSearchToolCall::default()),
-        "task" => Tool::TaskToolCall(pb::TaskToolCall::default()),
+        "task" | "taskv2" | "backgroundcomposerfollowup" => Tool::TaskToolCall(pb::TaskToolCall::default()),
         "fetchmcpresource" => Tool::ReadMcpResourceToolCall(pb::ReadMcpResourceToolCall::default()),
         "listmcpresources" => {
             Tool::ListMcpResourcesToolCall(pb::ListMcpResourcesToolCall::default())
@@ -259,6 +260,7 @@ pub fn tool_placeholder(name: &str, call_id: &str) -> Result<pb::ToolCall> {
             Tool::CommunicateUpdateToolCall(pb::CommunicateUpdateToolCall::default())
         }
         "getmcptools" => Tool::GetMcpToolsToolCall(pb::GetMcpToolsToolCall::default()),
+        "connectscm" | "fetchpullrequest" | "fetchrules" => Tool::ReadMcpResourceToolCall(pb::ReadMcpResourceToolCall::default()),
         _ => return Err(Error::Protocol(format!("unsupported tool: {name}"))),
     };
     Ok(pb::ToolCall {

@@ -81,6 +81,39 @@ impl SearchEngine {
         Ok(index_stats(&index))
     }
 
+    pub fn goto_definition(&self, repo: &Path, symbol: &str) -> Result<Vec<crate::types::SymbolDefinition>> {
+        let (root, identity) = self.resolve_source(repo)?;
+        let content = vec![ContentType::Code];
+        let index = self
+            .repository
+            .load_for_search(&root, &identity, &content)?;
+        let defs = index.lexical.find_definitions(symbol, &index.chunks);
+        let mut results = Vec::new();
+        for (file_path, line, implementation) in defs {
+            let full_path = root.join(&file_path);
+            let snippet = std::fs::read_to_string(&full_path)
+                .ok()
+                .map(|c| c.lines().skip(line.saturating_sub(1)).take(10).collect::<Vec<_>>().join("\n"));
+            results.push(crate::types::SymbolDefinition {
+                symbol: symbol.to_owned(),
+                file_path,
+                line,
+                implementation,
+                snippet,
+            });
+        }
+        Ok(results)
+    }
+
+    pub fn search_symbols(&self, repo: &Path, query: Option<&str>, limit: usize) -> Result<Vec<String>> {
+        let (root, identity) = self.resolve_source(repo)?;
+        let content = vec![ContentType::Code];
+        let index = self
+            .repository
+            .load_for_search(&root, &identity, &content)?;
+        Ok(index.lexical.list_all_symbols(query, limit))
+    }
+
     pub fn search(&self, request: SearchRequest) -> Result<SearchResponse> {
         validate_query(&request.query, request.top_k)?;
         let (root, identity) = self.resolve_source(&request.repo)?;
