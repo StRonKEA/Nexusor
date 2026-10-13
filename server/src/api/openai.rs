@@ -17,10 +17,11 @@ use serde_json::{json, Value};
 use tokio_util::sync::CancellationToken;
 
 use crate::{
+    api::common::{budget_to_reasoning_effort, parse_openai_tools},
     cursor::transport::TransportRegistry,
     model::{
         ContentPart, ModelInvocation, ModelRequest, ModelSpec, ProjectedContent,
-        ProjectedMessage, PromptSpec, Role,
+        ProjectedMessage, PromptSpec, Role, ToolCallContent, ToolResultContent,
     },
     provider::{FinishReason, ModelEvent},
 };
@@ -98,15 +99,15 @@ async fn list_models(
 }
 
 #[derive(Debug, Deserialize)]
-struct ChatCompletionMessage {
-    role: String,
-    content: Option<Value>,
-}
-
-#[derive(Debug, Deserialize)]
 struct ChatCompletionRequest {
     model: String,
-    messages: Vec<ChatCompletionMessage>,
+    messages: Vec<Value>,
+    #[serde(default)]
+    tools: Option<Value>,
+    #[serde(default)]
+    reasoning_effort: Option<String>,
+    #[serde(default)]
+    thinking_budget: Option<i64>,
     #[serde(default)]
     stream: bool,
     #[serde(default)]
@@ -127,9 +128,12 @@ async fn chat_completions(
     let mut instructions = String::new();
 
     for msg in payload.messages {
-        let role = match msg.role.as_str() {
+        let role_str = msg.get("role").and_then(|v| v.as_str()).unwrap_or("user");
+        let content_val = msg.get("content");
+
+        match role_str {
             "system" => {
-                if let Some(c) = msg.content {
+                if let Some(c) = content_val {
                     if let Some(text) = c.as_str() {
                         if !instructions.is_empty() {
                             instructions.push_str("\n\n");
@@ -137,35 +141,96 @@ async fn chat_completions(
                         instructions.push_str(text);
                     }
                 }
-                continue;
             }
-            "assistant" => Role::Assistant,
-            _ => Role::User,
-        };
+            "assistant" => {
+                let mut text = String::new();
+                if let Some(s) = content_val.and_then(|v| v.as_str()) {
+                    text = s.to_string();
+                }
 
-        let text = match msg.content {
-            Some(Value::String(s)) => s,
-            Some(Value::Array(arr)) => {
-                let mut parts = Vec::new();
-                for item in arr {
-                    if let Some(t) = item.get("text").and_then(|v| v.as_str()) {
-                        parts.push(t.to_string());
+                let mut calls = Vec::new();
+                if let Some(Value::Array(tool_calls)) = msg.get("tool_calls") {
+                    for (idx, tc) in tool_calls.iter().enumerate() {
+                        let id = tc.get("id").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+                        let name = tc.pointer("/function/name").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+                        let args_str = tc.pointer("/function/arguments").and_then(|v| v.as_str()).unwrap_or("{}");
+                        let arguments = serde_json::from_str(args_str).unwrap_or_else(|_| serde_json::json!({}));
+                        calls.push(ToolCallContent {
+                            index: idx,
+                            call_id: id,
+                            name,
+                            arguments,
+                        });
                     }
                 }
-                parts.join("\n")
-            }
-            _ => String::new(),
-        };
 
-        history.push(ProjectedMessage {
-            message_id: uuid::Uuid::new_v4().to_string(),
-            role,
-            content: ProjectedContent::Parts(vec![ContentPart::Text { text }]),
-        });
+                history.push(ProjectedMessage {
+                    message_id: uuid::Uuid::new_v4().to_string(),
+                    role: Role::Assistant,
+                    content: ProjectedContent::Assistant {
+                        text,
+                        thinking: String::new(),
+                        replay_state: None,
+                        calls,
+                    },
+                });
+            }
+            "tool" => {
+                let call_id = msg.get("tool_call_id").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+                let content_text = content_val.and_then(|v| v.as_str()).unwrap_or_default().to_string();
+                history.push(ProjectedMessage {
+                    message_id: uuid::Uuid::new_v4().to_string(),
+                    role: Role::Tool,
+                    content: ProjectedContent::ToolResult(ToolResultContent {
+                        call_id,
+                        name: String::new(),
+                        content: content_text,
+                        is_error: false,
+                        image: None,
+                        images: Vec::new(),
+                        provider_parts: Vec::new(),
+                    }),
+                });
+            }
+            _ => {
+                let text = match content_val {
+                    Some(Value::String(s)) => s.clone(),
+                    Some(Value::Array(arr)) => {
+                        let mut parts = Vec::new();
+                        for item in arr {
+                            if let Some(t) = item.get("text").and_then(|v| v.as_str()) {
+                                parts.push(t.to_string());
+                            }
+                        }
+                        parts.join("\n")
+                    }
+                    _ => String::new(),
+                };
+
+                history.push(ProjectedMessage {
+                    message_id: uuid::Uuid::new_v4().to_string(),
+                    role: Role::User,
+                    content: ProjectedContent::Parts(vec![ContentPart::Text { text }]),
+                });
+            }
+        }
     }
+
+    let tools = parse_openai_tools(payload.tools.as_ref());
 
     let mut model_spec = ModelSpec::new(&payload.model);
     model_spec.max_output_tokens = payload.max_tokens.or(Some(4096));
+
+    // Thinking/Reasoning effort mapping
+    if let Some(effort) = payload.reasoning_effort {
+        model_spec.reasoning.effort = Some(effort);
+        model_spec.reasoning.enabled = true;
+    } else if let Some(budget) = payload.thinking_budget {
+        if let Some(effort) = budget_to_reasoning_effort(budget) {
+            model_spec.reasoning.effort = Some(effort);
+            model_spec.reasoning.enabled = true;
+        }
+    }
 
     let invocation = ModelInvocation {
         call_id: call_id.clone(),
@@ -175,7 +240,7 @@ async fn chat_completions(
         request: ModelRequest {
             prompt: PromptSpec {
                 instructions,
-                tools: Vec::new(),
+                tools,
             },
             model: model_spec,
             history,
@@ -203,6 +268,51 @@ async fn chat_completions(
                                 "index": 0,
                                 "delta": {
                                     "content": text
+                                },
+                                "finish_reason": null
+                            }]
+                        });
+                        yield Ok::<_, Infallible>(format!("data: {}\n\n", serde_json::to_string(&chunk).unwrap()));
+                    }
+                    Ok(ModelEvent::ToolCallStart { index, call_id: tc_id, name }) => {
+                        let chunk = json!({
+                            "id": &call_id,
+                            "object": "chat.completion.chunk",
+                            "created": 1700000000,
+                            "model": &model,
+                            "choices": [{
+                                "index": 0,
+                                "delta": {
+                                    "tool_calls": [{
+                                        "index": index,
+                                        "id": tc_id,
+                                        "type": "function",
+                                        "function": {
+                                            "name": name,
+                                            "arguments": ""
+                                        }
+                                    }]
+                                },
+                                "finish_reason": null
+                            }]
+                        });
+                        yield Ok::<_, Infallible>(format!("data: {}\n\n", serde_json::to_string(&chunk).unwrap()));
+                    }
+                    Ok(ModelEvent::ToolCallArgumentsDelta { index, delta }) => {
+                        let chunk = json!({
+                            "id": &call_id,
+                            "object": "chat.completion.chunk",
+                            "created": 1700000000,
+                            "model": &model,
+                            "choices": [{
+                                "index": 0,
+                                "delta": {
+                                    "tool_calls": [{
+                                        "index": index,
+                                        "function": {
+                                            "arguments": delta
+                                        }
+                                    }]
                                 },
                                 "finish_reason": null
                             }]
@@ -254,12 +364,33 @@ async fn chat_completions(
         (headers, Body::from_stream(s)).into_response()
     } else {
         let mut full_text = String::new();
+        let mut tool_calls = Vec::new();
         let mut finish_reason = "stop".to_string();
 
         while let Some(item) = event_stream.next().await {
             match item {
                 Ok(ModelEvent::TextDelta(text)) => {
                     full_text.push_str(&text);
+                }
+                Ok(ModelEvent::ToolCallStart { index, call_id: tc_id, name }) => {
+                    tool_calls.push(json!({
+                        "id": tc_id,
+                        "type": "function",
+                        "function": {
+                            "name": name,
+                            "arguments": ""
+                        }
+                    }));
+                    let _ = index;
+                }
+                Ok(ModelEvent::ToolCallArgumentsDelta { index, delta }) => {
+                    if let Some(call) = tool_calls.get_mut(index) {
+                        if let Some(args) = call.pointer_mut("/function/arguments") {
+                            if let Some(s) = args.as_str() {
+                                *args = Value::String(format!("{s}{delta}"));
+                            }
+                        }
+                    }
                 }
                 Ok(ModelEvent::Done(finish)) => {
                     finish_reason = match finish {
@@ -284,6 +415,18 @@ async fn chat_completions(
             }
         }
 
+        let mut message = json!({
+            "role": "assistant"
+        });
+        if !full_text.is_empty() {
+            message["content"] = Value::String(full_text);
+        } else {
+            message["content"] = Value::Null;
+        }
+        if !tool_calls.is_empty() {
+            message["tool_calls"] = Value::Array(tool_calls);
+        }
+
         let resp = json!({
             "id": call_id,
             "object": "chat.completion",
@@ -291,10 +434,7 @@ async fn chat_completions(
             "model": payload.model,
             "choices": [{
                 "index": 0,
-                "message": {
-                    "role": "assistant",
-                    "content": full_text
-                },
+                "message": message,
                 "finish_reason": finish_reason
             }]
         });

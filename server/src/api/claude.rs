@@ -17,11 +17,9 @@ use serde_json::{json, Value};
 use tokio_util::sync::CancellationToken;
 
 use crate::{
+    api::common::{budget_to_reasoning_effort, parse_claude_messages, parse_claude_tools},
     cursor::transport::TransportRegistry,
-    model::{
-        ContentPart, ModelInvocation, ModelRequest, ModelSpec, ProjectedContent,
-        ProjectedMessage, PromptSpec, Role,
-    },
+    model::{ModelInvocation, ModelRequest, ModelSpec, PromptSpec},
     provider::{FinishReason, ModelEvent},
 };
 
@@ -32,17 +30,15 @@ pub fn router(registry: TransportRegistry) -> Router {
 }
 
 #[derive(Debug, Deserialize)]
-struct ClaudeMessageItem {
-    role: String,
-    content: Value,
-}
-
-#[derive(Debug, Deserialize)]
 struct ClaudeMessagesRequest {
     model: String,
-    messages: Vec<ClaudeMessageItem>,
+    messages: Vec<Value>,
     #[serde(default)]
     system: Option<Value>,
+    #[serde(default)]
+    tools: Option<Value>,
+    #[serde(default)]
+    thinking: Option<Value>,
     #[serde(default)]
     max_tokens: Option<u64>,
     #[serde(default)]
@@ -72,36 +68,22 @@ async fn claude_messages(
         }
     }
 
-    let mut history = Vec::new();
-    for msg in payload.messages {
-        let role = match msg.role.as_str() {
-            "assistant" => Role::Assistant,
-            _ => Role::User,
-        };
-
-        let text = match msg.content {
-            Value::String(s) => s,
-            Value::Array(arr) => {
-                let mut parts = Vec::new();
-                for item in arr {
-                    if let Some(t) = item.get("text").and_then(|v| v.as_str()) {
-                        parts.push(t.to_string());
-                    }
-                }
-                parts.join("\n")
-            }
-            _ => String::new(),
-        };
-
-        history.push(ProjectedMessage {
-            message_id: uuid::Uuid::new_v4().to_string(),
-            role,
-            content: ProjectedContent::Parts(vec![ContentPart::Text { text }]),
-        });
-    }
+    let tools = parse_claude_tools(payload.tools.as_ref());
+    let history = parse_claude_messages(&payload.messages);
 
     let mut model_spec = ModelSpec::new(&payload.model);
     model_spec.max_output_tokens = payload.max_tokens.or(Some(4096));
+
+    // Thinking budget mapping from CLIProxyAPI
+    if let Some(th) = payload.thinking {
+        if th.get("type").and_then(|v| v.as_str()) == Some("enabled") {
+            let budget = th.get("budget_tokens").and_then(|v| v.as_i64()).unwrap_or(-1);
+            if let Some(effort) = budget_to_reasoning_effort(budget) {
+                model_spec.reasoning.effort = Some(effort);
+                model_spec.reasoning.enabled = true;
+            }
+        }
+    }
 
     let invocation = ModelInvocation {
         call_id: call_id.clone(),
@@ -111,7 +93,7 @@ async fn claude_messages(
         request: ModelRequest {
             prompt: PromptSpec {
                 instructions,
-                tools: Vec::new(),
+                tools,
             },
             model: model_spec,
             history,
@@ -146,25 +128,29 @@ async fn claude_messages(
             });
             yield Ok::<_, Infallible>(format!("event: message_start\ndata: {}\n\n", serde_json::to_string(&msg_start).unwrap()));
 
-            // 2. content_block_start
-            let block_start = json!({
-                "type": "content_block_start",
-                "index": 0,
-                "content_block": {
-                    "type": "text",
-                    "text": ""
-                }
-            });
-            yield Ok::<_, Infallible>(format!("event: content_block_start\ndata: {}\n\n", serde_json::to_string(&block_start).unwrap()));
-
+            let mut block_index = 0;
+            let mut text_block_open = false;
             let mut output_tokens = 0;
+
             while let Some(item) = event_stream.next().await {
                 match item {
                     Ok(ModelEvent::TextDelta(text)) => {
                         output_tokens += 1;
+                        if !text_block_open {
+                            text_block_open = true;
+                            let block_start = json!({
+                                "type": "content_block_start",
+                                "index": block_index,
+                                "content_block": {
+                                    "type": "text",
+                                    "text": ""
+                                }
+                            });
+                            yield Ok::<_, Infallible>(format!("event: content_block_start\ndata: {}\n\n", serde_json::to_string(&block_start).unwrap()));
+                        }
                         let delta = json!({
                             "type": "content_block_delta",
-                            "index": 0,
+                            "index": block_index,
                             "delta": {
                                 "type": "text_delta",
                                 "text": text
@@ -172,21 +158,63 @@ async fn claude_messages(
                         });
                         yield Ok::<_, Infallible>(format!("event: content_block_delta\ndata: {}\n\n", serde_json::to_string(&delta).unwrap()));
                     }
+                    Ok(ModelEvent::ToolCallStart { index: _, call_id: tc_id, name }) => {
+                        if text_block_open {
+                            text_block_open = false;
+                            let block_stop = json!({
+                                "type": "content_block_stop",
+                                "index": block_index
+                            });
+                            yield Ok::<_, Infallible>(format!("event: content_block_stop\ndata: {}\n\n", serde_json::to_string(&block_stop).unwrap()));
+                            block_index += 1;
+                        }
+
+                        let tool_block_start = json!({
+                            "type": "content_block_start",
+                            "index": block_index,
+                            "content_block": {
+                                "type": "tool_use",
+                                "id": tc_id,
+                                "name": name,
+                                "input": {}
+                            }
+                        });
+                        yield Ok::<_, Infallible>(format!("event: content_block_start\ndata: {}\n\n", serde_json::to_string(&tool_block_start).unwrap()));
+                    }
+                    Ok(ModelEvent::ToolCallArgumentsDelta { index: _, delta }) => {
+                        let arg_delta = json!({
+                            "type": "content_block_delta",
+                            "index": block_index,
+                            "delta": {
+                                "type": "input_json_delta",
+                                "partial_json": delta
+                            }
+                        });
+                        yield Ok::<_, Infallible>(format!("event: content_block_delta\ndata: {}\n\n", serde_json::to_string(&arg_delta).unwrap()));
+                    }
+                    Ok(ModelEvent::ToolCallEnd { .. }) => {
+                        let block_stop = json!({
+                            "type": "content_block_stop",
+                            "index": block_index
+                        });
+                        yield Ok::<_, Infallible>(format!("event: content_block_stop\ndata: {}\n\n", serde_json::to_string(&block_stop).unwrap()));
+                        block_index += 1;
+                    }
                     Ok(ModelEvent::Done(finish)) => {
+                        if text_block_open {
+                            let block_stop = json!({
+                                "type": "content_block_stop",
+                                "index": block_index
+                            });
+                            yield Ok::<_, Infallible>(format!("event: content_block_stop\ndata: {}\n\n", serde_json::to_string(&block_stop).unwrap()));
+                        }
+
                         let stop_reason = match finish {
                             FinishReason::ToolUse => "tool_use",
                             FinishReason::Length => "max_tokens",
                             FinishReason::Stop => "end_turn",
                         };
 
-                        // 3. content_block_stop
-                        let block_stop = json!({
-                            "type": "content_block_stop",
-                            "index": 0
-                        });
-                        yield Ok::<_, Infallible>(format!("event: content_block_stop\ndata: {}\n\n", serde_json::to_string(&block_stop).unwrap()));
-
-                        // 4. message_delta
                         let msg_delta = json!({
                             "type": "message_delta",
                             "delta": {
@@ -199,7 +227,6 @@ async fn claude_messages(
                         });
                         yield Ok::<_, Infallible>(format!("event: message_delta\ndata: {}\n\n", serde_json::to_string(&msg_delta).unwrap()));
 
-                        // 5. message_stop
                         let msg_stop = json!({
                             "type": "message_stop"
                         });
@@ -230,6 +257,7 @@ async fn claude_messages(
         (headers, Body::from_stream(s)).into_response()
     } else {
         let mut full_text = String::new();
+        let mut content_blocks = Vec::new();
         let mut stop_reason = "end_turn".to_string();
 
         while let Some(item) = event_stream.next().await {
@@ -261,14 +289,18 @@ async fn claude_messages(
             }
         }
 
+        if !full_text.is_empty() {
+            content_blocks.push(json!({
+                "type": "text",
+                "text": full_text
+            }));
+        }
+
         let resp = json!({
             "id": call_id,
             "type": "message",
             "role": "assistant",
-            "content": [{
-                "type": "text",
-                "text": full_text
-            }],
+            "content": content_blocks,
             "model": payload.model,
             "stop_reason": stop_reason,
             "stop_sequence": null,
