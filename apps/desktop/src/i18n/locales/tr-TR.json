@@ -449,6 +449,7 @@
   "models.filter_all_providers": "Tüm Sağlayıcılar ({count})",
   "nav.calls": "Çağrılar",
   "nav.cursor_integration": "Cursor",
+  "nav.clients_and_ides": "İstemciler & IDE'ler",
   "nav.general": "Genel",
   "nav.main_menu": "Ana menü",
   "nav.models": "Modeller",

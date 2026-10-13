@@ -446,6 +446,7 @@
   "models.filter_all_providers": "All Providers ({count})",
   "nav.calls": "Calls",
   "nav.cursor_integration": "Cursor",
+  "nav.clients_and_ides": "Clients & IDEs",
   "nav.general": "General",
   "nav.main_menu": "Main menu",
   "nav.models": "Models",

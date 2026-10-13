@@ -266,7 +266,7 @@ export function HomePage() {
 
   const dashboardContent = (
     <div className={styles.dashboard}>
-      {/* ── API Access Gateway Panel (OpenAI & Claude endpoints for external clients) ── */}
+      {/* ── API Access Gateway Panel (OpenAI & Claude) ── */}
       <HomeAccessPanel />
 
       {/* ── Empty State Onboarding: When no accounts are connected ── */}

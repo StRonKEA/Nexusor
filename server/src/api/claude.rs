@@ -25,6 +25,8 @@ use crate::{
 
 pub fn router(registry: TransportRegistry) -> Router {
     Router::new()
+        .route("/messages", post(claude_messages))
+        .route("/messages/count_tokens", post(claude_count_tokens))
         .route("/v1/messages", post(claude_messages))
         .route("/v1/messages/count_tokens", post(claude_count_tokens))
         .with_state(registry)

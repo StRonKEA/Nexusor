@@ -680,5 +680,6 @@
   "common.copy_failed": "common.copy_failed",
   "home.api_gateway_subtitle": "home.api_gateway_subtitle",
   "home.api_gateway_title": "home.api_gateway_title",
-  "home.quick_configs": "home.quick_configs"
+  "home.quick_configs": "home.quick_configs",
+  "nav.clients_and_ides": "Clients & IDEs"
 }

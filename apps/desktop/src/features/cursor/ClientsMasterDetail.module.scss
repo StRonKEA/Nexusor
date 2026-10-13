@@ -1,0 +1,218 @@
+.unifiedLayout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+
+  @media (max-width: 900px) {
+    flex-direction: column;
+  }
+}
+
+// ─── Sol Taraftaki Dikey İstemci Listesi (Sidebar) ──────────────────────────
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 250px;
+  flex-shrink: 0;
+
+  @media (max-width: 900px) {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+}
+
+.clientItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #17181c;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  padding: 12px 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  position: relative;
+
+  &:hover {
+    background: #1d1e24;
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+}
+
+.clientItemActive {
+  background: rgba(39, 195, 118, 0.06);
+  border-color: rgba(39, 195, 118, 0.45);
+
+  .clientTitle {
+    color: #27c376;
+  }
+}
+
+.clientLogo {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+
+.clientInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.clientTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f7f8f8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.clientSubtitle {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.activeIndicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #27c376;
+  box-shadow: 0 0 6px rgba(39, 195, 118, 0.8);
+  flex-shrink: 0;
+}
+
+// ─── Sağ Taraftaki Yapılandırma Alanı (Detail Pane) ─────────────────────────
+.detailPane {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.configCard {
+  background: #17181c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.cardHeader {
+  h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #f7f8f8;
+  }
+  p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5);
+  }
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.fieldItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fieldTitle {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.fieldValue {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  color: #60a5fa;
+  background: #111215;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 5px 10px;
+  user-select: all;
+}
+
+.copyRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  code {
+    flex: 1;
+  }
+}
+
+.copyBtn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f3f4f6;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.16);
+  }
+}
+
+.codeSnippetBox {
+  background: #0f1013;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 14px;
+
+  pre {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #e5e7eb;
+    overflow-x: auto;
+  }
+}
+
+.actionRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.primaryCopyBtn {
+  background: #27c376;
+  border: none;
+  color: #0b0c0e;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #2fe087;
+  }
+}

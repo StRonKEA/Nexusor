@@ -36,7 +36,7 @@ export function AppLayout() {
   const menuItems: MenuItem[] = [
     { kind: "group", label: t("nav.general") },
     { kind: "page", path: "/", label: t("nav.overview"), icon: homeIcon, end: true },
-    { kind: "page", path: "/cursor", label: t("nav.cursor_integration"), icon: cursorIcon },
+    { kind: "page", path: "/cursor", label: t("nav.clients_and_ides"), icon: cursorIcon },
     { kind: "group", label: t("nav.resources") },
     { kind: "page", path: "/providers", label: t("nav.providers"), icon: providerIcon },
     { kind: "page", path: "/models", label: t("nav.models"), icon: modelsIcon },

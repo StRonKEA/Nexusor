@@ -17,7 +17,7 @@ export function HomeAccessPanel() {
 
   const servicePort = ports.service_port || 6817;
   const baseUrlOpenAI = `http://127.0.0.1:${servicePort}/v1`;
-  const baseUrlClaude = `http://127.0.0.1:${servicePort}/v1/messages`;
+  const baseUrlClaude = `http://127.0.0.1:${servicePort}`;
 
   const copyToClipboard = async (text: string, fieldName: string) => {
     try {
@@ -64,12 +64,12 @@ export function HomeAccessPanel() {
         <div className={styles.fieldRow}>
           <div className={styles.fieldInfo}>
             <span className={styles.fieldLabel}>
-              {activeProtocol === "openai" ? "Base URL (OpenAI Compatible)" : "Endpoint URL (Anthropic / Claude)"}
+              {activeProtocol === "openai" ? "Base URL (OpenAI Protocol)" : "Base URL (Anthropic Protocol)"}
             </span>
             <span className={styles.fieldHint}>
               {activeProtocol === "openai"
                 ? "Cline, Continue, Aider, Chatbox vb. için Base URL"
-                : "Claude Code CLI veya Anthropic SDK kullanan araçlar için"}
+                : "Claude Code CLI, Anthropic SDK veya Claude destekli araçlar için Base URL"}
             </span>
           </div>
           <div className={styles.copyBox}>

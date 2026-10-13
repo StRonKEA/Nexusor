@@ -1,13 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  api,
-  type TabSettings,
-} from "../../shared/api";
-import {
-  readDesktopSettings,
-  writeHideCursorBuiltinModels,
-} from "../../shared/native/appLifecycle";
+import { api, type TabSettings } from "../../shared/api";
+import { readDesktopSettings, writeHideCursorBuiltinModels } from "../../shared/native/appLifecycle";
 import { CursorCaGate, CursorCaProvider } from "../models/CursorGates";
 import { PageContent } from "../../shell/layout/PageContent";
 import { ConfirmDialog } from "../../shared/ui/ConfirmDialog";
@@ -21,14 +15,20 @@ import { appStore, useAppStore } from "../../shared/store/appStore";
 import { TabSettingsCard } from "../settings/TabSettingsCard";
 import { CommitSettingsCard } from "../settings/CommitSettingsCard";
 import { CmdKSettingsCard } from "../settings/CmdKSettingsCard";
+import { ExternalClientDetail } from "./ExternalClientDetail";
+import { providerLogos } from "../../shared/utils/providerIcons";
 import styles from "../models/CursorSettings.module.scss";
 import pageStyles from "./CursorIntegrationPage.module.scss";
+import masterStyles from "./ClientsMasterDetail.module.scss";
 import { errorText } from "../../shared/utils/errorText";
+
+type ClientID = "cursor" | "cline" | "continue" | "aider" | "claudecode" | "generic";
 
 export function CursorIntegrationPage() {
   const { cursorHarness, cursorBusy } = useAppStore();
   const navigate = useNavigate();
   const message = useMessage();
+  const [selectedClient, setSelectedClient] = useState<ClientID>("cursor");
   const [caCommand, setCaCommand] = useState<string | null>(null);
   const [waitingForCaRefresh, setWaitingForCaRefresh] = useState(false);
   const [confirmDisableTakeover, setConfirmDisableTakeover] = useState(false);
@@ -93,16 +93,6 @@ export function CursorIntegrationPage() {
     }
   };
 
-  const openCaTerminal = () => {
-    if (caCommand) {
-      void api
-        .openCursorCaInstallTerminal(caCommand)
-        .catch((cause) => message(errorText(cause)));
-    }
-    setCaCommand(null);
-    setWaitingForCaRefresh(true);
-  };
-
   const handleRepair = async () => {
     setRepairing(true);
     try {
@@ -116,7 +106,6 @@ export function CursorIntegrationPage() {
     }
   };
 
-  // Flag toggles
   const toggleHideBuiltin = async (enabled: boolean) => {
     try {
       await writeHideCursorBuiltinModels(enabled);
@@ -127,7 +116,6 @@ export function CursorIntegrationPage() {
     }
   };
 
-  // Tab handlers
   const editTab = () => {
     if (!tabSettings) return;
     setTabDraft(tabSettings);
@@ -140,11 +128,8 @@ export function CursorIntegrationPage() {
   };
 
   const saveTab = async () => {
+    setSavingTab(true);
     try {
-      if (tabDraft.mode === "custom" && !tabDraft.address.trim()) {
-        throw new Error(t("settings.tab_service_address_is_required"));
-      }
-      setSavingTab(true);
       const saved = await api.setTabSettings({ ...tabDraft, address: tabDraft.address.trim() });
       setTabSettings(saved);
       setTabDraft(saved);
@@ -164,7 +149,7 @@ export function CursorIntegrationPage() {
       ? t("cursor.degraded")
       : t("cursor.disabled");
 
-  const content = (
+  const cursorContent = (
     <CursorCaProvider>
       <CursorCaGate
         busy={cursorBusy}
@@ -173,7 +158,6 @@ export function CursorIntegrationPage() {
         onRefresh={() => void refreshCa()}
       >
         <div className={pageStyles.page}>
-          {/* ── Kart 1: Bağlantı ve Ele Geçirme Durumu ── */}
           <Card className={pageStyles.statusCard}>
             <div className={pageStyles.statusGrid}>
               <StatusItem
@@ -233,7 +217,6 @@ export function CursorIntegrationPage() {
             </div>
           )}
 
-          {/* ── Kart 2: Model ve Arayüz Davranışı ── */}
           <div className={pageStyles.sectionBlock}>
             <div className={pageStyles.sectionHeaderRow}>
               <div>
@@ -256,7 +239,6 @@ export function CursorIntegrationPage() {
             </Card>
           </div>
 
-          {/* ── Cursor Tab & Commit Cards ── */}
           <TabSettingsCard
             settings={tabSettings}
             draft={tabDraft}
@@ -277,36 +259,127 @@ export function CursorIntegrationPage() {
 
   return (
     <>
-      <PageActions position="left">
-        <div className={styles.takeoverActions}>
-          <span className={styles.takeoverStatus}>
-            {cursorTakenOver ? t("cursor.taken_over") : t("cursor.not_taken_over")}
-          </span>
-          <TooltipTrigger label={takeoverLabel}>
-            <Switch
-              checked={cursorTakenOver}
-              disabled={cursorBusy || (!cursorTakenOver && !caReady)}
-              label={takeoverLabel}
-              onChange={(enabled) => {
-                if (enabled) void appStore.setCursorEnabled(true);
-                else setConfirmDisableTakeover(true);
-              }}
-            />
-          </TooltipTrigger>
-          <Button
-            size="small"
-            variant="secondary"
-            disabled={cursorBusy || repairing}
-            onClick={() => void handleRepair()}
-          >
-            {repairing ? t("common.processing") : t("cursor.repair_button")}
-          </Button>
-        </div>
-      </PageActions>
+      {selectedClient === "cursor" && (
+        <PageActions position="left">
+          <div className={styles.takeoverActions}>
+            <span className={styles.takeoverStatus}>
+              {cursorTakenOver ? t("cursor.taken_over") : t("cursor.not_taken_over")}
+            </span>
+            <TooltipTrigger label={takeoverLabel}>
+              <Switch
+                checked={cursorTakenOver}
+                disabled={cursorBusy || (!cursorTakenOver && !caReady)}
+                label={takeoverLabel}
+                onChange={(enabled) => {
+                  if (enabled) void appStore.setCursorEnabled(true);
+                  else setConfirmDisableTakeover(true);
+                }}
+              />
+            </TooltipTrigger>
+            <Button
+              size="small"
+              variant="secondary"
+              disabled={cursorBusy || repairing}
+              onClick={() => void handleRepair()}
+            >
+              {repairing ? t("common.processing") : t("cursor.repair_button")}
+            </Button>
+          </div>
+        </PageActions>
+      )}
 
       <PageContent
-        title={t("cursor.cursor")}
-        sections={[{ key: "cursor-integration", estimatedHeight: 800, content }]}
+        title={t("nav.clients_and_ides")}
+        sections={[
+          {
+            key: "clients-master-detail",
+            estimatedHeight: 800,
+            content: (
+              <div className={masterStyles.unifiedLayout}>
+                {/* ── Sol Sütun: Dikey İstemci Listesi (Vertical Sidebar) ── */}
+                <div className={masterStyles.sidebar}>
+                  <button
+                    type="button"
+                    className={`${masterStyles.clientItem} ${selectedClient === "cursor" ? masterStyles.clientItemActive : ""}`}
+                    onClick={() => setSelectedClient("cursor")}
+                  >
+                    <img src={providerLogos.antigravity} alt="" className={masterStyles.clientLogo} />
+                    <div className={masterStyles.clientInfo}>
+                      <span className={masterStyles.clientTitle}>Cursor IDE</span>
+                      <span className={masterStyles.clientSubtitle}>Sıfır-Patch Vekil Sunucu</span>
+                    </div>
+                    {cursorTakenOver && <span className={masterStyles.activeIndicator} title="Aktif" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`${masterStyles.clientItem} ${selectedClient === "cline" ? masterStyles.clientItemActive : ""}`}
+                    onClick={() => setSelectedClient("cline")}
+                  >
+                    <img src={providerLogos.openai} alt="" className={masterStyles.clientLogo} />
+                    <div className={masterStyles.clientInfo}>
+                      <span className={masterStyles.clientTitle}>Cline / Roo Code</span>
+                      <span className={masterStyles.clientSubtitle}>VS Code Uzantısı</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`${masterStyles.clientItem} ${selectedClient === "continue" ? masterStyles.clientItemActive : ""}`}
+                    onClick={() => setSelectedClient("continue")}
+                  >
+                    <img src={providerLogos.openai} alt="" className={masterStyles.clientLogo} />
+                    <div className={masterStyles.clientInfo}>
+                      <span className={masterStyles.clientTitle}>Continue.dev</span>
+                      <span className={masterStyles.clientSubtitle}>VS Code / JetBrains</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`${masterStyles.clientItem} ${selectedClient === "aider" ? masterStyles.clientItemActive : ""}`}
+                    onClick={() => setSelectedClient("aider")}
+                  >
+                    <img src={providerLogos.openai} alt="" className={masterStyles.clientLogo} />
+                    <div className={masterStyles.clientInfo}>
+                      <span className={masterStyles.clientTitle}>Aider</span>
+                      <span className={masterStyles.clientSubtitle}>Terminal Ajanı</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`${masterStyles.clientItem} ${selectedClient === "claudecode" ? masterStyles.clientItemActive : ""}`}
+                    onClick={() => setSelectedClient("claudecode")}
+                  >
+                    <img src={providerLogos.anthropic} alt="" className={masterStyles.clientLogo} />
+                    <div className={masterStyles.clientInfo}>
+                      <span className={masterStyles.clientTitle}>Claude Code</span>
+                      <span className={masterStyles.clientSubtitle}>Resmi Anthropic CLI</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`${masterStyles.clientItem} ${selectedClient === "generic" ? masterStyles.clientItemActive : ""}`}
+                    onClick={() => setSelectedClient("generic")}
+                  >
+                    <img src={providerLogos.openrouter} alt="" className={masterStyles.clientLogo} />
+                    <div className={masterStyles.clientInfo}>
+                      <span className={masterStyles.clientTitle}>Diğer İstemciler</span>
+                      <span className={masterStyles.clientSubtitle}>Chatbox / WebUI / Python</span>
+                    </div>
+                  </button>
+                </div>
+
+                {/* ── Sağ Sütun: Seçilen İstemcinin Yapılandırma Paneli ── */}
+                <div className={masterStyles.detailPane}>
+                  {selectedClient === "cursor" ? cursorContent : <ExternalClientDetail selected={selectedClient} />}
+                </div>
+              </div>
+            ),
+          },
+        ]}
       />
 
       <ConfirmDialog
@@ -329,32 +402,19 @@ export function CursorIntegrationPage() {
         cancelLabel={t("common.close")}
         confirmLabel={t("cursor.open_terminal")}
         onCancel={() => setCaCommand(null)}
-        onConfirm={openCaTerminal}
+        onConfirm={handleRepair}
       >
-        <div className={styles.editor}>
-          <strong>{t("cursor.authorization_is_required_to_ins")}</strong>
-          <span>{t("cursor.the_install_command_has_been_cop")}</span>
-          <pre className={styles.command}>{caCommand}</pre>
-        </div>
+        <p>{t("cursor.the_install_command_has_been_cop")}</p>
       </ConfirmDialog>
     </>
   );
 }
 
-function StatusItem({
-  label,
-  value,
-  ok,
-}: {
-  label: string;
-  value: string;
-  ok: boolean;
-}) {
+function StatusItem({ label, value, ok }: { label: string; value: string; ok?: boolean }) {
   return (
     <div className={pageStyles.statusItem}>
       <small>{label}</small>
-      <strong data-ok={ok || undefined}>{value}</strong>
+      <strong data-ok={ok ? "true" : undefined}>{value}</strong>
     </div>
   );
 }
-
