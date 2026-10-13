@@ -1,84 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  api,
-  type AutoRouterConfig,
-  type RouterCombo,
-} from "../../shared/api";
+import { api, configuredPluginModels, type AutoRouterConfig, type RouterCombo } from "../../shared/api";
 import { PageContent } from "../../shell/layout/PageContent";
 import { Card } from "../../shared/ui/Card";
 import { Button } from "../../shared/ui/Button";
 import { ConfirmDialog } from "../../shared/ui/ConfirmDialog";
 import { Switch } from "../../shared/ui/Switch";
 import { Icon } from "../../shared/ui/Icon";
-import {
-  boltIcon,
-  codeIcon,
-  brainIcon,
-  speedIcon,
-  gearIcon,
-  emptyHexIcon,
-  arrowRightIcon,
-  refreshIcon,
-} from "../../shared/ui/icons";
+import { boltIcon, arrowRightIcon } from "../../shared/ui/icons";
 import { useMessage } from "../../shared/ui/message";
 import { useAppStore } from "../../shared/store/appStore";
-import { useI18n } from "../../i18n/store";
-import { AutoRouterWizard } from "./AutoRouterWizard";
-import { CustomComboWizard, type WizardState } from "./CustomComboWizard";
 import styles from "./CombosPage.module.scss";
-
-export interface Account {
-  id: string;
-  label: string;
-  subLabel: string;
-  status: "ready" | "cooling" | "invalid" | "disabled";
-  icon: string | null;
-  pluginId: string | null;
-  resourceType: string | null;
-  providerLabel: string;
-  modelOptions: ModelOption[];
-}
-
-export interface ModelOption {
-  id: string;
-  label: string;
-  icon: string | null;
-  accountId: string;
-  accountLabel: string;
-  pluginId: string | null;
-  images?: boolean;
-}
-
-export interface WizardSlot {
-  key: string;
-  accountId: string;
-  accountLabel: string;
-  accountSubLabel: string;
-  accountIcon: string | null;
-  pluginId: string | null;
-  modelId: string;
-  modelLabel: string;
-  modelIcon: string | null;
-}
-
-function freshWizard(): WizardState {
-  return {
-    combo_id: `combo-${Date.now()}`,
-    selectedAccountIds: new Set(),
-    selectedSlots: [],
-    chainStrategy: "fallback",
-    name: "",
-    description: "",
-  };
-}
 
 export function CombosPage() {
   const message = useMessage();
-  useI18n();
-  const { plugins } = useAppStore();
+  const { plugins, models } = useAppStore();
 
   const [combos, setCombos] = useState<RouterCombo[]>([]);
   const [deletingCombo, setDeletingCombo] = useState<RouterCombo | null>(null);
+
+  // Auto Router state
   const [autoConfig, setAutoConfig] = useState<AutoRouterConfig>({
     enabled: true,
     coding_slots: [],
@@ -92,239 +32,336 @@ export function CombosPage() {
     updated_at_ms: 0,
   });
 
-  const [comboWizardOpen, setComboWizardOpen] = useState(false);
-  const [editingComboId, setEditingComboId] = useState<string | null>(null);
-  const [activeComboWizard, setActiveComboWizard] = useState<WizardState>(freshWizard);
-  const [autoWizardOpen, setAutoWizardOpen] = useState(false);
+  // New combo inline creation draft
+  const [showCreateCombo, setShowCreateCombo] = useState(false);
+  const [comboName, setComboName] = useState("");
+  const [comboStrategy, setComboStrategy] = useState<"fallback" | "round_robin">("fallback");
+  const [selectedModelList, setSelectedModelList] = useState<string[]>([]);
 
-  const loadAll = async () => {
-    try { setCombos(await api.routerCombos()); } catch (e) { message(String(e)); }
+  // Collect all usable model IDs across plugins and manual configs
+  const allAvailableModels = useMemo(() => {
+    const list: Array<{ id: string; name: string }> = [];
+    const pModels = configuredPluginModels(plugins);
+    for (const m of pModels) {
+      list.push({ id: m.id, name: `${m.displayName || m.id}` });
+    }
+    for (const m of models) {
+      if (!list.some((item) => item.id === m.model_id)) {
+        list.push({ id: m.model_id, name: `${m.display_name || m.model_id} (Manuel)` });
+      }
+    }
+    return list;
+  }, [plugins, models]);
+
+  const loadData = async () => {
     try {
-      const cfg = await api.autoRouterConfig();
-      setAutoConfig(cfg);
+      setCombos(await api.routerCombos());
+    } catch (e) {
+      message(String(e));
+    }
+    try {
+      setAutoConfig(await api.autoRouterConfig());
     } catch {
       // default
     }
   };
 
-  useEffect(() => { void loadAll(); }, [plugins.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    void loadData();
+  }, [plugins.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const toggleAutoSmart = async () => {
-    const next = !autoConfig.enabled;
+  const toggleAutoRouter = async (enabled: boolean) => {
     try {
-      const updated = { ...autoConfig, enabled: next, updated_at_ms: Date.now() };
+      const updated = { ...autoConfig, enabled, updated_at_ms: Date.now() };
       await api.saveAutoRouterConfig(updated);
       setAutoConfig(updated);
-      await api.setModelCustomization("auto-smart", { custom_name: null, enabled: next });
-      message(next ? "Auto Router Etkinleştirildi" : "Auto Router Devre Dışı Bırakıldı");
+      await api.setModelCustomization("auto-smart", { custom_name: null, enabled });
+      message(enabled ? "Auto Router Etkinleştirildi" : "Auto Router Kapatıldı");
     } catch (e) {
       message(String(e));
     }
   };
 
-  const accounts: Account[] = useMemo(() => {
-    const list: Account[] = [];
-    for (const p of plugins) {
-      for (const r of p.resources) {
-        for (const item of r.resources) {
-          const modelOptions: ModelOption[] = (p.models || []).map((m) => ({
-            id: m.id,
-            label: m.displayName || m.id,
-            icon: m.icon || p.icon || null,
-            accountId: item.id,
-            accountLabel: item.displayName || item.id,
-            pluginId: p.id,
-            images: m.images,
-          }));
-
-          list.push({
-            id: item.id,
-            label: item.displayName || item.id,
-            subLabel: p.name,
-            status: item.state?.status === "cooling" ? "cooling" : "ready",
-            icon: p.icon || null,
-            pluginId: p.id,
-            resourceType: r.type,
-            providerLabel: p.name,
-            modelOptions,
-          });
-        }
-      }
+  const updateAutoPrimaryModel = async (
+    category: "coding" | "reasoning" | "fast",
+    modelId: string
+  ) => {
+    try {
+      const slot = modelId ? [{ model_id: modelId, account_ids: null, slot_strategy: "fallback" }] : [];
+      const updated = {
+        ...autoConfig,
+        [`${category}_slots`]: slot,
+        updated_at_ms: Date.now(),
+      };
+      await api.saveAutoRouterConfig(updated);
+      setAutoConfig(updated);
+      message("Model seçimi güncellendi");
+    } catch (e) {
+      message(String(e));
     }
-    return list;
-  }, [plugins]);
-
-  const cleanModelName = (mid: string): string => {
-    const parts = mid.split("/");
-    return parts[parts.length - 1] || mid;
   };
 
-  const openNewCombo = () => {
-    setEditingComboId(null);
-    setActiveComboWizard(freshWizard());
-    setComboWizardOpen(true);
+  const toggleModelInNewCombo = (id: string) => {
+    setSelectedModelList((prev) =>
+      prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
+    );
   };
 
-  const handleDeleteCombo = async (id: string) => {
-    try { await api.deleteRouterCombo(id); await loadAll(); message("Yedekleme zinciri silindi"); }
-    catch (e) { message(String(e)); }
+  const saveNewCombo = async () => {
+    if (!comboName.trim()) {
+      message("Lütfen zincir için bir isim girin");
+      return;
+    }
+    if (selectedModelList.length < 2) {
+      message("Bir yedekleme zinciri için en az 2 model seçmelisiniz");
+      return;
+    }
+
+    try {
+      const now = Date.now();
+      const newCombo: RouterCombo = {
+        combo_id: `combo-${now}`,
+        name: comboName.trim(),
+        description: "",
+        strategy: comboStrategy,
+        enabled: true,
+        models: selectedModelList,
+        slots: selectedModelList.map((m) => ({
+          model_id: m,
+          account_ids: null,
+          slot_strategy: comboStrategy,
+        })),
+        created_at_ms: now,
+        updated_at_ms: now,
+      };
+
+      await api.upsertRouterCombo(newCombo);
+      await loadData();
+      setShowCreateCombo(false);
+      setComboName("");
+      setSelectedModelList([]);
+      message("Yedekleme zinciri başarıyla kaydedildi");
+    } catch (e) {
+      message(String(e));
+    }
   };
 
-  const handleToggleCombo = async (combo: RouterCombo) => {
-    try { await api.upsertRouterCombo({ ...combo, enabled: !combo.enabled, updated_at_ms: Date.now() }); await loadAll(); }
-    catch (e) { message(String(e)); }
+  const toggleComboState = async (combo: RouterCombo) => {
+    try {
+      await api.upsertRouterCombo({
+        ...combo,
+        enabled: !combo.enabled,
+        updated_at_ms: Date.now(),
+      });
+      await loadData();
+    } catch (e) {
+      message(String(e));
+    }
   };
 
-  const pageContent = (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px", padding: "16px 20px 32px", maxWidth: "1400px", margin: "0 auto", boxSizing: "border-box" }}>
-      {/* ── BÖLÜM 1: Akıllı Mod (Auto Router) ── */}
-      <Card style={{ background: "#17181c", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "16px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "8px", background: "rgba(39,195,118,0.1)", color: "#27c376" }}>
-              <Icon icon={boltIcon} size="1.3em" />
+  const deleteCombo = async (id: string) => {
+    try {
+      await api.deleteRouterCombo(id);
+      await loadData();
+      message("Yedekleme zinciri silindi");
+    } catch (e) {
+      message(String(e));
+    }
+  };
+
+  const cleanName = (id: string) => {
+    const parts = id.split("/");
+    return parts[parts.length - 1] || id;
+  };
+
+  const content = (
+    <div className={styles.page}>
+      {/* ── BÖLÜM 1: Cursor Auto Router (Akıllı Yönlendirici) ── */}
+      <Card className={styles.card}>
+        <div className={styles.cardHeader}>
+          <div className={styles.titleGroup}>
+            <span className={styles.iconBadge}>
+              <Icon icon={boltIcon} size="1.2em" />
             </span>
             <div>
-              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "#f7f8f8" }}>
-                Cursor Auto Router (Akıllı Yönlendirici)
-              </h3>
-              <p style={{ margin: "3px 0 0", fontSize: "12px", color: "rgba(255,255,255,0.5)" }}>
-                Cursor veya harici araçta model olarak <code>auto-smart</code> seçildiğinde istek tipine göre en uygun modeli otomatik devreye sokar.
-              </p>
+              <h3>Auto Router (Akıllı Yönlendirici)</h3>
+              <p>Model olarak <code>auto-smart</code> seçildiğinde istek tipine göre modeli otomatik belirler.</p>
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <Button variant="secondary" size="small" onClick={() => setAutoWizardOpen(true)}>
-              <Icon icon={gearIcon} size="1.1em" /> Modelleri Yapılandır
-            </Button>
-            <Switch
-              checked={autoConfig.enabled}
-              onChange={() => void toggleAutoSmart()}
-              label={autoConfig.enabled ? "Aktif (Açık)" : "Kapalı"}
-            />
-          </div>
+          <Switch
+            checked={autoConfig.enabled}
+            label={autoConfig.enabled ? "Auto Mod: Açık" : "Auto Mod: Kapalı"}
+            onChange={toggleAutoRouter}
+          />
         </div>
 
-        {/* 3 Temiz Kategori Kartı: Kodlama, Düşünme, Hızlı */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "12px", marginTop: "16px" }}>
-          {/* Kodlama */}
-          <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "6px", padding: "14px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px", color: "#60a5fa", fontSize: "13px", fontWeight: 600 }}>
-              <Icon icon={codeIcon} size="1.1em" />
-              <span>Kodlama Görevleri (Coding)</span>
-            </div>
-            <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.7)" }}>
-              {autoConfig.coding_slots.length === 0 ? (
-                <span style={{ color: "rgba(255,255,255,0.4)" }}>Varsayılan Claude 3.5 Sonnet / GPT-4o kullanılır</span>
-              ) : (
-                autoConfig.coding_slots.map((s, idx) => (
-                  <div key={idx} style={{ padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
-                    <strong>{idx + 1}.</strong> {cleanModelName(s.model_id)}
-                  </div>
-                ))
-              )}
-            </div>
+        <div className={styles.autoGrid}>
+          {/* 1. Kodlama */}
+          <div className={styles.autoCategory}>
+            <span className={styles.catTitle}>💻 Kodlama Görevleri (Coding)</span>
+            <span className={styles.catDesc}>Kod yazma, düzenleme ve dosya analizleri</span>
+            <select
+              className={styles.selectBox}
+              value={autoConfig.coding_slots[0]?.model_id || ""}
+              onChange={(e) => updateAutoPrimaryModel("coding", e.target.value)}
+            >
+              <option value="">(Otomatik - En Uygun Modeli Seç)</option>
+              {allAvailableModels.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Düşünme */}
-          <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "6px", padding: "14px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px", color: "#c084fc", fontSize: "13px", fontWeight: 600 }}>
-              <Icon icon={brainIcon} size="1.1em" />
-              <span>Derin Akıl Yürütme (Reasoning)</span>
-            </div>
-            <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.7)" }}>
-              {autoConfig.reasoning_slots.length === 0 ? (
-                <span style={{ color: "rgba(255,255,255,0.4)" }}>Varsayılan o3-mini / Gemini Flash Thinking kullanılır</span>
-              ) : (
-                autoConfig.reasoning_slots.map((s, idx) => (
-                  <div key={idx} style={{ padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
-                    <strong>{idx + 1}.</strong> {cleanModelName(s.model_id)}
-                  </div>
-                ))
-              )}
-            </div>
+          {/* 2. Düşünme */}
+          <div className={styles.autoCategory}>
+            <span className={styles.catTitle}>🧠 Derin Akıl Yürütme (Reasoning)</span>
+            <span className={styles.catDesc}>Karmaşık mimari planlar ve matematik</span>
+            <select
+              className={styles.selectBox}
+              value={autoConfig.reasoning_slots[0]?.model_id || ""}
+              onChange={(e) => updateAutoPrimaryModel("reasoning", e.target.value)}
+            >
+              <option value="">(Otomatik - Düşünme Modelini Seç)</option>
+              {allAvailableModels.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Hızlı */}
-          <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "6px", padding: "14px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px", color: "#34d399", fontSize: "13px", fontWeight: 600 }}>
-              <Icon icon={speedIcon} size="1.1em" />
-              <span>Hızlı Tamamlama & Tab (Fast)</span>
-            </div>
-            <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.7)" }}>
-              {autoConfig.fast_slots.length === 0 ? (
-                <span style={{ color: "rgba(255,255,255,0.4)" }}>Varsayılan Gemini 2.5 Flash / Claude Haiku kullanılır</span>
-              ) : (
-                autoConfig.fast_slots.map((s, idx) => (
-                  <div key={idx} style={{ padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
-                    <strong>{idx + 1}.</strong> {cleanModelName(s.model_id)}
-                  </div>
-                ))
-              )}
-            </div>
+          {/* 3. Hızlı */}
+          <div className={styles.autoCategory}>
+            <span className={styles.catTitle}>⚡ Hızlı Tamamlama & Tab (Fast)</span>
+            <span className={styles.catDesc}>Satır içi tamamlama ve kısa sorular</span>
+            <select
+              className={styles.selectBox}
+              value={autoConfig.fast_slots[0]?.model_id || ""}
+              onChange={(e) => updateAutoPrimaryModel("fast", e.target.value)}
+            >
+              <option value="">(Otomatik - En Hızlı Modeli Seç)</option>
+              {allAvailableModels.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </Card>
 
-      {/* ── BÖLÜM 2: Özel Yedekleme Zincirleri (Custom Failover Combos) ── */}
+      {/* ── BÖLÜM 2: Özel Yedekleme Zincirleri (Failover & Round-Robin) ── */}
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+        <div className={styles.sectionHeading}>
           <div>
-            <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 600, color: "#f7f8f8" }}>
-              Özel Yedekleme Zincirleri (Failover & Round-Robin)
-            </h3>
-            <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#8a8f98" }}>
-              Biri hata verirse ya da kotası biterse sıradaki modelin otomatik devreye girmesi için özel zincirler tanımlayın.
-            </p>
+            <h3>Özel Yedekleme Zincirleri (Failover)</h3>
+            <p>Biri hata verirse veya kotası biterse sıradaki modelin devreye girmesi için sıralı zincirler.</p>
           </div>
-          <Button variant="primary" size="small" onClick={openNewCombo}>
-            + Yeni Yedekleme Zinciri Oluştur
+          <Button
+            variant={showCreateCombo ? "secondary" : "primary"}
+            size="small"
+            onClick={() => setShowCreateCombo((prev) => !prev)}
+          >
+            {showCreateCombo ? "İptal Et" : "+ Yeni Zincir Oluştur"}
           </Button>
         </div>
 
+        {/* Yeni Zincir Oluşturma Kutusu (Açılır-Kapanır Basit Form) */}
+        {showCreateCombo && (
+          <div className={styles.createCard}>
+            <div className={styles.createRow}>
+              <input
+                type="text"
+                placeholder="Zincir Adı (Örn: Claude -> Gemini Yedekleme)"
+                value={comboName}
+                onChange={(e) => setComboName(e.target.value)}
+              />
+              <select
+                value={comboStrategy}
+                onChange={(e) => setComboStrategy(e.target.value as "fallback" | "round_robin")}
+              >
+                <option value="fallback">Failover (Sırayla Yedekle)</option>
+                <option value="round_robin">Round-Robin (Dönüşümlü Yük Dağıt)</option>
+              </select>
+            </div>
+
+            <div className={styles.slotPicker}>
+              <span className={styles.slotPickerLabel}>
+                Zincire Eklenecek Modelleri Sırayla Seçin (Tıklayarak ekleyin):
+              </span>
+              <div className={styles.slotChips}>
+                {allAvailableModels.map((m) => {
+                  const isSelected = selectedModelList.includes(m.id);
+                  const orderIdx = selectedModelList.indexOf(m.id);
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      className={`${styles.slotChip} ${isSelected ? styles.slotChipSelected : ""}`}
+                      onClick={() => toggleModelInNewCombo(m.id)}
+                    >
+                      {isSelected && <span>{orderIdx + 1}.</span>}
+                      <span>{cleanName(m.id)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+              <Button size="small" variant="secondary" onClick={() => setShowCreateCombo(false)}>
+                Vazgeç
+              </Button>
+              <Button size="small" variant="primary" onClick={saveNewCombo}>
+                Zinciri Kaydet
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Mevcut Zincirler Listesi */}
         {combos.length === 0 ? (
-          <Card style={{ padding: "32px", textAlign: "center", background: "#17181c", border: "1px dashed rgba(255,255,255,0.1)", borderRadius: "8px" }}>
-            <p style={{ margin: 0, color: "rgba(255,255,255,0.5)", fontSize: "13px" }}>
-              Henüz özel bir yedekleme zinciri oluşturmadınız. İhtiyaç halinde yukarıdaki butondan ekleyebilirsiniz.
+          <Card style={{ padding: "30px", textAlign: "center", background: "#17181c", border: "1px dashed rgba(255,255,255,0.08)", borderRadius: "8px" }}>
+            <p style={{ margin: 0, color: "rgba(255,255,255,0.45)", fontSize: "13px" }}>
+              Henüz özel bir yedekleme zinciri oluşturulmadı.
             </p>
           </Card>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             {combos.map((combo) => (
-              <Card key={combo.combo_id} style={{ background: "#17181c", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: combo.enabled ? "#27c376" : "#6b7280" }} />
+              <div key={combo.combo_id} className={styles.comboItem}>
+                <div className={styles.comboLeft}>
+                  <div className={styles.dot} data-active={combo.enabled ? "true" : "false"} />
                   <div>
-                    <h4 style={{ margin: 0, fontSize: "14px", fontWeight: 600, color: "#f7f8f8" }}>{combo.name}</h4>
-                    <span style={{ fontSize: "11px", color: "#8a8f98", fontFamily: "monospace" }}>combo:{combo.combo_id}</span>
+                    <h4 className={styles.comboName}>{combo.name}</h4>
+                    <span className={styles.comboId}>combo:{combo.combo_id}</span>
                   </div>
                 </div>
 
-                {/* Zincirdeki Modeller Akışı */}
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                <div className={styles.chainFlow}>
                   {(combo.models || []).map((mid, idx) => (
                     <div key={idx} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", padding: "3px 8px", borderRadius: "4px", fontSize: "11px", color: "#e5e7eb" }}>
-                        {cleanModelName(mid)}
-                      </span>
+                      <span className={styles.chainNode}>{cleanName(mid)}</span>
                       {idx < (combo.models || []).length - 1 && (
-                        <Icon icon={arrowRightIcon} size="0.9em" style={{ color: "rgba(255,255,255,0.3)" }} />
+                        <Icon icon={arrowRightIcon} size="0.9em" style={{ color: "rgba(255,255,255,0.25)" }} />
                       )}
                     </div>
                   ))}
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div className={styles.comboActions}>
                   <Switch
                     checked={combo.enabled}
-                    onChange={() => void handleToggleCombo(combo)}
-                    label={combo.enabled ? "Aktif" : "Pasif"}
+                    label={combo.enabled ? "Açık" : "Kapalı"}
+                    onChange={() => void toggleComboState(combo)}
                   />
-                  <Button variant="danger" size="small" onClick={() => setDeletingCombo(combo)}>
+                  <Button variant="secondary" size="small" onClick={() => setDeletingCombo(combo)}>
                     Sil
                   </Button>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         )}
@@ -336,53 +373,24 @@ export function CombosPage() {
     <>
       <PageContent
         title="Yönlendirme & Akıllı Modeller"
-        sections={[{ key: "combos", estimatedHeight: 600, content: pageContent }]}
+        sections={[{ key: "combos", estimatedHeight: 600, content }]}
       />
 
       <ConfirmDialog
         open={deletingCombo !== null}
-        title="Yedekleme Zincirini Sil"
-        cancelLabel="İptal"
+        title="Zinciri Sil"
+        cancelLabel="Vazgeç"
         confirmLabel="Sil"
         onCancel={() => setDeletingCombo(null)}
         onConfirm={() => {
           if (deletingCombo) {
-            void handleDeleteCombo(deletingCombo.combo_id);
+            void deleteCombo(deletingCombo.combo_id);
             setDeletingCombo(null);
           }
         }}
       >
-        <p>"{deletingCombo?.name}" zincirini silmek istediğinize emin misiniz?</p>
+        <p>"{deletingCombo?.name}" yedekleme zincirini silmek istediğinize emin misiniz?</p>
       </ConfirmDialog>
-
-      {/* Auto Router Wizard Modal */}
-      {autoWizardOpen && (
-        <AutoRouterWizard
-          open={autoWizardOpen}
-          onClose={() => setAutoWizardOpen(false)}
-          autoConfig={autoConfig}
-          onConfigSaved={setAutoConfig}
-          accounts={accounts}
-          cleanModelName={cleanModelName}
-        />
-      )}
-
-      {/* Custom Combo Wizard Modal */}
-      {comboWizardOpen && (
-        <CustomComboWizard
-          open={comboWizardOpen}
-          onClose={() => setComboWizardOpen(false)}
-          editingComboId={editingComboId}
-          initialWizard={activeComboWizard}
-          combos={combos}
-          accounts={accounts}
-          onComboSaved={async () => {
-            await loadAll();
-            setComboWizardOpen(false);
-          }}
-          cleanModelName={cleanModelName}
-        />
-      )}
     </>
   );
 }

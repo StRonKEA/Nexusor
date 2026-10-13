@@ -12,7 +12,6 @@ import { FormField, SecretTextInput, TextInput } from "../../shared/ui/FormContr
 import controls from "../../shared/ui/Controls.module.scss";
 import { Modal } from "../../shared/ui/Modal";
 import { useMessage } from "../../shared/ui/message";
-import { PageActions } from "../../shell/PageActions";
 import { appStore, useAppStore } from "../../shared/store/appStore";
 import { errorText } from "../../shared/utils/errorText";
 
