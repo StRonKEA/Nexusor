@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   api,
-  pluginText,
   type AutoRouterConfig,
-  type ComboSlot,
   type RouterCombo,
 } from "../../shared/api";
 import { PageContent } from "../../shell/layout/PageContent";
@@ -20,19 +18,14 @@ import {
   gearIcon,
   emptyHexIcon,
   arrowRightIcon,
-  skipForwardIcon,
   refreshIcon,
 } from "../../shared/ui/icons";
 import { useMessage } from "../../shared/ui/message";
 import { useAppStore } from "../../shared/store/appStore";
-import { getProviderLogo } from "../../shared/utils/providerIcons";
 import { useI18n } from "../../i18n/store";
-import { TaskEnginesTab } from "./TaskEnginesTab";
 import { AutoRouterWizard } from "./AutoRouterWizard";
 import { CustomComboWizard, type WizardState } from "./CustomComboWizard";
 import styles from "./CombosPage.module.scss";
-
-// ─── Domain types ─────────────────────────────────────────────────────────────
 
 export interface Account {
   id: string;
@@ -56,9 +49,7 @@ export interface ModelOption {
   images?: boolean;
 }
 
-/** Represents a concrete (account, model) slot in any chain */
 export interface WizardSlot {
-  /** Unique key: `${accountId}::${modelId}` */
   key: string;
   accountId: string;
   accountLabel: string;
@@ -81,23 +72,11 @@ function freshWizard(): WizardState {
   };
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function chainStrategyLabel(s: string) {
-  if (s === "round_robin") return t("combos.chain_round_robin");
-  if (s === "fill_first") return t("combos.chain_fill_first");
-  if (s === "most_quota") return t("combos.chain_most_quota");
-  return t("combos.chain_failover");
-}
-
-// ─── Main page ────────────────────────────────────────────────────────────────
-
 export function CombosPage() {
   const message = useMessage();
-  const { locale } = useI18n();
-  const { models, plugins } = useAppStore();
+  useI18n();
+  const { plugins } = useAppStore();
 
-  const [mainTab, setMainTab] = useState<"auto" | "chains" | "engines">("auto");
   const [combos, setCombos] = useState<RouterCombo[]>([]);
   const [deletingCombo, setDeletingCombo] = useState<RouterCombo | null>(null);
   const [autoConfig, setAutoConfig] = useState<AutoRouterConfig>({
@@ -113,7 +92,6 @@ export function CombosPage() {
     updated_at_ms: 0,
   });
 
-  // Modal visibility and state
   const [comboWizardOpen, setComboWizardOpen] = useState(false);
   const [editingComboId, setEditingComboId] = useState<string | null>(null);
   const [activeComboWizard, setActiveComboWizard] = useState<WizardState>(freshWizard);
@@ -138,152 +116,57 @@ export function CombosPage() {
       await api.saveAutoRouterConfig(updated);
       setAutoConfig(updated);
       await api.setModelCustomization("auto-smart", { custom_name: null, enabled: next });
-      message(next ? t("combos.cursor_auto_mode_enabled") : t("combos.cursor_auto_mode_disabled"));
+      message(next ? "Auto Router Etkinleştirildi" : "Auto Router Devre Dışı Bırakıldı");
     } catch (e) {
       message(String(e));
     }
   };
 
-  // ── Account catalogue ────────────────────────────────────────────────────
-  const accounts = useMemo((): Account[] => {
-    const result: Account[] = [];
+  const accounts: Account[] = useMemo(() => {
+    const list: Account[] = [];
+    for (const p of plugins) {
+      for (const r of p.resources) {
+        for (const item of r.resources) {
+          const modelOptions: ModelOption[] = (p.models || []).map((m) => ({
+            id: m.id,
+            label: m.displayName || m.id,
+            icon: m.icon || p.icon || null,
+            accountId: item.id,
+            accountLabel: item.displayName || item.id,
+            pluginId: p.id,
+            images: m.images,
+          }));
 
-    // Builtin models — each model IS its own "account"
-    for (const m of models) {
-      const icon = getProviderLogo(m.group_name) || getProviderLogo(m.base_url);
-      result.push({
-        id: m.model_hash,
-        label: m.display_name,
-        subLabel: m.group_name?.trim() || providerDomain(m.base_url),
-        status: "ready",
-        icon,
-        pluginId: null,
-        resourceType: null,
-        providerLabel: m.group_name?.trim() || providerDomain(m.base_url),
-        modelOptions: [{
-          id: m.model_hash,
-          label: m.display_name,
-          icon,
-          accountId: m.model_hash,
-          accountLabel: m.display_name,
-          pluginId: null,
-        }],
-      });
-    }
-
-    // Plugin OAuth resources
-    for (const plugin of plugins) {
-      const pluginIcon = getProviderLogo(plugin.id) || plugin.icon;
-      for (const res of plugin.resources) {
-        for (const resource of res.resources) {
-          const status: Account["status"] =
-            resource.state.status === "ready" ? "ready" :
-            resource.state.status === "cooling" ? "cooling" :
-            resource.state.status === "disabled" ? "disabled" : "invalid";
-
-          const modelOptions: ModelOption[] = plugin.providers.flatMap((prov) =>
-            prov.configured ? prov.models.map((m) => ({
-              id: m.id,
-              label: m.displayName,
-              icon: pluginIcon,
-              accountId: resource.id,
-              accountLabel: resource.displayName || resource.id,
-              pluginId: plugin.id,
-              images: m.images,
-            })) : []
-          );
-
-          result.push({
-            id: resource.id,
-            label: resource.displayName || resource.id,
-            subLabel: pluginText(plugin.providers[0]?.displayName, locale) || plugin.name,
-            status,
-            icon: pluginIcon,
-            pluginId: plugin.id,
-            resourceType: res.type,
-            providerLabel: plugin.name,
+          list.push({
+            id: item.id,
+            label: item.displayName || item.id,
+            subLabel: p.name,
+            status: item.state?.status === "cooling" ? "cooling" : "ready",
+            icon: p.icon || null,
+            pluginId: p.id,
+            resourceType: r.type,
+            providerLabel: p.name,
             modelOptions,
           });
         }
       }
     }
-    return result;
-  }, [models, plugins, locale]);
+    return list;
+  }, [plugins]);
 
-  // Account groups for Custom Combo
-  const accountGroups = useMemo(() => {
-    const map = new Map<string, { label: string; icon: string | null; accounts: Account[] }>();
-    for (const acc of accounts) {
-      const key = acc.providerLabel;
-      if (!map.has(key)) map.set(key, { label: key, icon: acc.icon, accounts: [] });
-      map.get(key)!.accounts.push(acc);
-    }
-    return [...map.values()];
-  }, [accounts]);
-
-  // Helper to map ComboSlot list to WizardSlot list
-  const mapComboSlotsToWizard = (slots: ComboSlot[]): WizardSlot[] => {
-    return slots.map((s) => {
-      const aid = s.account_ids?.[0];
-      const acc = aid
-        ? accounts.find((a) => a.id === aid)
-        : accounts.find((a) => a.id === s.model_id || a.modelOptions.some((m) => m.id === s.model_id));
-      const mod = acc?.modelOptions.find((m) => m.id === s.model_id) ??
-        accounts.flatMap((a) => a.modelOptions).find((m) => m.id === s.model_id);
-      return {
-        key: `${acc?.id ?? aid ?? "any"}::${s.model_id}`,
-        accountId: acc?.id ?? aid ?? s.model_id,
-        accountLabel: acc?.label ?? t("combos.models_label"),
-        accountSubLabel: acc?.subLabel ?? "",
-        accountIcon: acc?.icon ?? null,
-        pluginId: acc?.pluginId ?? null,
-        modelId: s.model_id,
-        modelLabel: mod?.label ?? cleanModelName(s.model_id, accounts),
-        modelIcon: mod?.icon || acc?.icon || null,
-      };
-    });
+  const cleanModelName = (mid: string): string => {
+    const parts = mid.split("/");
+    return parts[parts.length - 1] || mid;
   };
 
-  const openCreateCombo = () => {
-    setActiveComboWizard(freshWizard());
+  const openNewCombo = () => {
     setEditingComboId(null);
-    setComboWizardOpen(true);
-  };
-
-  const openEditCombo = (combo: RouterCombo) => {
-    const accountIds = new Set<string>();
-    const rawSlots = combo.slots && combo.slots.length > 0
-      ? combo.slots
-      : (combo.models || []).map((mid) => ({
-          model_id: mid,
-          account_ids: null,
-          slot_strategy: combo.strategy,
-        }));
-
-    const slots = mapComboSlotsToWizard(rawSlots);
-    for (const s of slots) accountIds.add(s.accountId);
-
-    setActiveComboWizard({
-      combo_id: combo.combo_id,
-      selectedAccountIds: accountIds,
-      selectedSlots: slots,
-      chainStrategy:
-        combo.strategy === "round_robin"
-          ? "round_robin"
-          : combo.strategy === "fill_first"
-          ? "fill_first"
-          : combo.strategy === "most_quota"
-          ? "most_quota"
-          : "fallback",
-      name: combo.name,
-      description: combo.description ?? "",
-    });
-    setEditingComboId(combo.combo_id);
+    setActiveComboWizard(freshWizard());
     setComboWizardOpen(true);
   };
 
   const handleDeleteCombo = async (id: string) => {
-    try { await api.deleteRouterCombo(id); await loadAll(); message(t("combos.combo_deleted")); }
+    try { await api.deleteRouterCombo(id); await loadAll(); message("Yedekleme zinciri silindi"); }
     catch (e) { message(String(e)); }
   };
 
@@ -293,197 +176,174 @@ export function CombosPage() {
   };
 
   const pageContent = (
-    <div className={styles.page}>
-      <div className={styles.mainTabBar}>
-        <button
-          type="button"
-          className={`${styles.mainTabButton} ${mainTab === "auto" ? styles.mainTabActive : ""}`}
-          onClick={() => setMainTab("auto")}
-        >
-          <span>Akıllı Mod (Auto Router)</span>
-        </button>
-        <button
-          type="button"
-          className={`${styles.mainTabButton} ${mainTab === "chains" ? styles.mainTabActive : ""}`}
-          onClick={() => setMainTab("chains")}
-        >
-          <span>Özel Yedekleme Zincirleri ({combos.length})</span>
-        </button>
-        <button
-          type="button"
-          className={`${styles.mainTabButton} ${mainTab === "engines" ? styles.mainTabActive : ""}`}
-          onClick={() => setMainTab("engines")}
-        >
-          <span>Gelişmiş Ajan Motorları</span>
-        </button>
-      </div>
-
-      {mainTab === "auto" ? (
-        <Card className={styles.autoCard}>
-          <div className={styles.autoCardTop}>
-            <div className={styles.autoCardTitleGroup}>
-              <span className={styles.autoCardIcon}><Icon icon={boltIcon} size="1.2em" /></span>
-              <div>
-                <h3 className={styles.autoCardTitle}>
-                  {t("combos.cursor_auto_mode_smart_router")}
-                </h3>
-                <p className={styles.autoCardDesc}>
-                  {t("combos.when_auto_is_selected_in_the_cur")}
-                </p>
-              </div>
-            </div>
-            <div className={styles.autoActions}>
-              <Button variant="secondary" size="small" onClick={() => setAutoWizardOpen(true)}>
-                <span className={styles.inlineButtonContent}>
-                  <Icon icon={gearIcon} size="1.1em" /> {t("combos.configure_auto")}
-                </span>
-              </Button>
-              <Switch
-                checked={autoConfig.enabled}
-                onChange={() => void toggleAutoSmart()}
-                label={autoConfig.enabled ? t("combos.enabled_on") : t("combos.disabled_off")}
-              />
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px", padding: "16px 20px 32px", maxWidth: "1400px", margin: "0 auto", boxSizing: "border-box" }}>
+      {/* ── BÖLÜM 1: Akıllı Mod (Auto Router) ── */}
+      <Card style={{ background: "#17181c", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "8px", background: "rgba(39,195,118,0.1)", color: "#27c376" }}>
+              <Icon icon={boltIcon} size="1.3em" />
+            </span>
+            <div>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "#f7f8f8" }}>
+                Cursor Auto Router (Akıllı Yönlendirici)
+              </h3>
+              <p style={{ margin: "3px 0 0", fontSize: "12px", color: "rgba(255,255,255,0.5)" }}>
+                Cursor veya harici araçta model olarak <code>auto-smart</code> seçildiğinde istek tipine göre en uygun modeli otomatik devreye sokar.
+              </p>
             </div>
           </div>
-
-          {/* Live Category Summary Grid */}
-          <div className={styles.autoCategoriesGrid}>
-            {/* Coding */}
-            <div className={styles.autoCategoryCard}>
-              <div className={styles.autoCatHeader}>
-                <span className={styles.autoCatIconSvg}><Icon icon={codeIcon} size="1.1em" /></span>
-                <span>{t("combos.auto_step_coding")}</span>
-              </div>
-              <div className={styles.autoCatSlots}>
-                {autoConfig.coding_slots.length === 0 ? (
-                  <span className={styles.autoCatEmpty}>{t("combos.no_slots_in_category")}</span>
-                ) : (
-                  autoConfig.coding_slots.map((s, idx) => {
-                    const name = cleanModelName(s.model_id, accounts);
-                    const acc = getSlotAccount(s, accounts);
-                    const icon = acc?.modelOptions.find((m) => m.id === s.model_id)?.icon || acc?.icon;
-                    return (
-                      <div key={idx} className={styles.autoCatSlotItem}>
-                        <span className={styles.autoCatSlotIdx}>{idx + 1}.</span>
-                        {icon && <img src={icon} alt="" className={styles.autoCatSlotIcon} />}
-                        <span className={styles.autoCatSlotName}>{name}</span>
-                        {acc && <span className={styles.autoCatSlotAccount}>{acc.label}</span>}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-
-            {/* Reasoning */}
-            <div className={styles.autoCategoryCard}>
-              <div className={styles.autoCatHeader}>
-                <span className={styles.autoCatIconSvg}><Icon icon={brainIcon} size="1.1em" /></span>
-                <span>{t("combos.auto_step_reasoning")}</span>
-              </div>
-              <div className={styles.autoCatSlots}>
-                {autoConfig.reasoning_slots.length === 0 ? (
-                  <span className={styles.autoCatEmpty}>{t("combos.no_slots_in_category")}</span>
-                ) : (
-                  autoConfig.reasoning_slots.map((s, idx) => {
-                    const name = cleanModelName(s.model_id, accounts);
-                    const acc = getSlotAccount(s, accounts);
-                    const icon = acc?.modelOptions.find((m) => m.id === s.model_id)?.icon || acc?.icon;
-                    return (
-                      <div key={idx} className={styles.autoCatSlotItem}>
-                        <span className={styles.autoCatSlotIdx}>{idx + 1}.</span>
-                        {icon && <img src={icon} alt="" className={styles.autoCatSlotIcon} />}
-                        <span className={styles.autoCatSlotName}>{name}</span>
-                        {acc && <span className={styles.autoCatSlotAccount}>{acc.label}</span>}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-
-            {/* Fast */}
-            <div className={styles.autoCategoryCard}>
-              <div className={styles.autoCatHeader}>
-                <span className={styles.autoCatIconSvg}><Icon icon={speedIcon} size="1.1em" /></span>
-                <span>{t("combos.auto_step_fast")}</span>
-              </div>
-              <div className={styles.autoCatSlots}>
-                {autoConfig.fast_slots.length === 0 ? (
-                  <span className={styles.autoCatEmpty}>{t("combos.no_slots_in_category")}</span>
-                ) : (
-                  autoConfig.fast_slots.map((s, idx) => {
-                    const name = cleanModelName(s.model_id, accounts);
-                    const acc = getSlotAccount(s, accounts);
-                    const icon = acc?.modelOptions.find((m) => m.id === s.model_id)?.icon || acc?.icon;
-                    return (
-                      <div key={idx} className={styles.autoCatSlotItem}>
-                        <span className={styles.autoCatSlotIdx}>{idx + 1}.</span>
-                        {icon && <img src={icon} alt="" className={styles.autoCatSlotIcon} />}
-                        <span className={styles.autoCatSlotName}>{name}</span>
-                        {acc && <span className={styles.autoCatSlotAccount}>{acc.label}</span>}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          </div>
-        </Card>
-      ) : mainTab === "chains" ? (
-        <div className={styles.customCombosSection}>
-          <div className={styles.customCombosHeader}>
-            <div className={styles.customCombosTitleGroup}>
-              <h3 className={styles.customCombosTitle}>{t("combos.custom_combos_title")}</h3>
-              <p className={styles.customCombosDesc}>{t("combos.custom_combos_desc")}</p>
-            </div>
-            <Button variant="primary" size="medium" onClick={openCreateCombo}>
-              + {t("combos.new_combo")}
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <Button variant="secondary" size="small" onClick={() => setAutoWizardOpen(true)}>
+              <Icon icon={gearIcon} size="1.1em" /> Modelleri Yapılandır
             </Button>
+            <Switch
+              checked={autoConfig.enabled}
+              onChange={() => void toggleAutoSmart()}
+              label={autoConfig.enabled ? "Aktif (Açık)" : "Kapalı"}
+            />
+          </div>
+        </div>
+
+        {/* 3 Temiz Kategori Kartı: Kodlama, Düşünme, Hızlı */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "12px", marginTop: "16px" }}>
+          {/* Kodlama */}
+          <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "6px", padding: "14px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px", color: "#60a5fa", fontSize: "13px", fontWeight: 600 }}>
+              <Icon icon={codeIcon} size="1.1em" />
+              <span>Kodlama Görevleri (Coding)</span>
+            </div>
+            <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.7)" }}>
+              {autoConfig.coding_slots.length === 0 ? (
+                <span style={{ color: "rgba(255,255,255,0.4)" }}>Varsayılan Claude 3.5 Sonnet / GPT-4o kullanılır</span>
+              ) : (
+                autoConfig.coding_slots.map((s, idx) => (
+                  <div key={idx} style={{ padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+                    <strong>{idx + 1}.</strong> {cleanModelName(s.model_id)}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
 
-          {combos.length === 0 ? (
-            <EmptyState onAdd={openCreateCombo} />
-          ) : (
-            combos.map((combo) => (
-              <ComboCard
-                key={combo.combo_id}
-                combo={combo}
-                accounts={accounts}
-                onEdit={() => openEditCombo(combo)}
-                onDelete={() => setDeletingCombo(combo)}
-                onToggle={() => void handleToggleCombo(combo)}
-              />
-            ))
-          )}
+          {/* Düşünme */}
+          <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "6px", padding: "14px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px", color: "#c084fc", fontSize: "13px", fontWeight: 600 }}>
+              <Icon icon={brainIcon} size="1.1em" />
+              <span>Derin Akıl Yürütme (Reasoning)</span>
+            </div>
+            <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.7)" }}>
+              {autoConfig.reasoning_slots.length === 0 ? (
+                <span style={{ color: "rgba(255,255,255,0.4)" }}>Varsayılan o3-mini / Gemini Flash Thinking kullanılır</span>
+              ) : (
+                autoConfig.reasoning_slots.map((s, idx) => (
+                  <div key={idx} style={{ padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+                    <strong>{idx + 1}.</strong> {cleanModelName(s.model_id)}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Hızlı */}
+          <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "6px", padding: "14px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px", color: "#34d399", fontSize: "13px", fontWeight: 600 }}>
+              <Icon icon={speedIcon} size="1.1em" />
+              <span>Hızlı Tamamlama & Tab (Fast)</span>
+            </div>
+            <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.7)" }}>
+              {autoConfig.fast_slots.length === 0 ? (
+                <span style={{ color: "rgba(255,255,255,0.4)" }}>Varsayılan Gemini 2.5 Flash / Claude Haiku kullanılır</span>
+              ) : (
+                autoConfig.fast_slots.map((s, idx) => (
+                  <div key={idx} style={{ padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+                    <strong>{idx + 1}.</strong> {cleanModelName(s.model_id)}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
-      ) : (
-        <TaskEnginesTab
-          autoConfig={autoConfig}
-          onSaveConfig={async (cfg) => {
-            await api.saveAutoRouterConfig(cfg);
-            setAutoConfig(cfg);
-          }}
-          accounts={accounts}
-          cleanModelName={cleanModelName}
-          getSlotAccount={getSlotAccount}
-        />
-      )}
+      </Card>
+
+      {/* ── BÖLÜM 2: Özel Yedekleme Zincirleri (Custom Failover Combos) ── */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 600, color: "#f7f8f8" }}>
+              Özel Yedekleme Zincirleri (Failover & Round-Robin)
+            </h3>
+            <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#8a8f98" }}>
+              Biri hata verirse ya da kotası biterse sıradaki modelin otomatik devreye girmesi için özel zincirler tanımlayın.
+            </p>
+          </div>
+          <Button variant="primary" size="small" onClick={openNewCombo}>
+            + Yeni Yedekleme Zinciri Oluştur
+          </Button>
+        </div>
+
+        {combos.length === 0 ? (
+          <Card style={{ padding: "32px", textAlign: "center", background: "#17181c", border: "1px dashed rgba(255,255,255,0.1)", borderRadius: "8px" }}>
+            <p style={{ margin: 0, color: "rgba(255,255,255,0.5)", fontSize: "13px" }}>
+              Henüz özel bir yedekleme zinciri oluşturmadınız. İhtiyaç halinde yukarıdaki butondan ekleyebilirsiniz.
+            </p>
+          </Card>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            {combos.map((combo) => (
+              <Card key={combo.combo_id} style={{ background: "#17181c", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: combo.enabled ? "#27c376" : "#6b7280" }} />
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: "14px", fontWeight: 600, color: "#f7f8f8" }}>{combo.name}</h4>
+                    <span style={{ fontSize: "11px", color: "#8a8f98", fontFamily: "monospace" }}>combo:{combo.combo_id}</span>
+                  </div>
+                </div>
+
+                {/* Zincirdeki Modeller Akışı */}
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                  {(combo.models || []).map((mid, idx) => (
+                    <div key={idx} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", padding: "3px 8px", borderRadius: "4px", fontSize: "11px", color: "#e5e7eb" }}>
+                        {cleanModelName(mid)}
+                      </span>
+                      {idx < (combo.models || []).length - 1 && (
+                        <Icon icon={arrowRightIcon} size="0.9em" style={{ color: "rgba(255,255,255,0.3)" }} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <Switch
+                    checked={combo.enabled}
+                    onChange={() => void handleToggleCombo(combo)}
+                    label={combo.enabled ? "Aktif" : "Pasif"}
+                  />
+                  <Button variant="danger" size="small" onClick={() => setDeletingCombo(combo)}>
+                    Sil
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 
   return (
     <>
       <PageContent
-        title={t("combos.combos")}
+        title="Yönlendirme & Akıllı Modeller"
         sections={[{ key: "combos", estimatedHeight: 600, content: pageContent }]}
       />
 
       <ConfirmDialog
         open={deletingCombo !== null}
-        title={t("combos.delete_combo_confirm_title")}
-        cancelLabel={t("common.cancel")}
-        confirmLabel={t("common.delete")}
+        title="Yedekleme Zincirini Sil"
+        cancelLabel="İptal"
+        confirmLabel="Sil"
         onCancel={() => setDeletingCombo(null)}
         onConfirm={() => {
           if (deletingCombo) {
@@ -492,9 +352,7 @@ export function CombosPage() {
           }
         }}
       >
-        <p>
-          {t("combos.delete_combo_confirm_desc", { name: deletingCombo?.name || "" })}
-        </p>
+        <p>"{deletingCombo?.name}" zincirini silmek istediğinize emin misiniz?</p>
       </ConfirmDialog>
 
       {/* Auto Router Wizard Modal */}
@@ -517,159 +375,14 @@ export function CombosPage() {
           editingComboId={editingComboId}
           initialWizard={activeComboWizard}
           combos={combos}
-          onComboSaved={loadAll}
           accounts={accounts}
-          accountGroups={accountGroups}
+          onComboSaved={async () => {
+            await loadAll();
+            setComboWizardOpen(false);
+          }}
+          cleanModelName={cleanModelName}
         />
       )}
     </>
   );
-}
-
-// ─── Empty state ──────────────────────────────────────────────────────────────
-function EmptyState({ onAdd }: { onAdd: () => void }) {
-  return (
-    <div className={styles.emptyState}>
-      <div className={styles.emptyIcon}><Icon icon={emptyHexIcon} size="2.5em" /></div>
-      <h3 className={styles.emptyTitle}>{t("combos.no_combos_yet")}</h3>
-      <p className={styles.emptyDesc}>{t("combos.empty_desc")}</p>
-      <Button variant="primary" size="medium" onClick={onAdd}>
-        + {t("combos.add_first_combo")}
-      </Button>
-    </div>
-  );
-}
-
-// ─── Combo card ───────────────────────────────────────────────────────────────
-function ComboCard({ combo, accounts, onEdit, onDelete, onToggle }: {
-  combo: RouterCombo;
-  accounts: Account[];
-  onEdit: () => void;
-  onDelete: () => void;
-  onToggle: () => void;
-}) {
-  const allModelOptions = accounts.flatMap((a) => a.modelOptions);
-
-  // Group consecutive identical model slots into a pooled representation
-  const groupedSlots = useMemo(() => {
-    interface GroupedSlotItem {
-      modelId: string;
-      label: string;
-      icon: string | null;
-      accounts: Account[];
-      count: number;
-    }
-    const groups: GroupedSlotItem[] = [];
-    const slots = combo.slots && combo.slots.length > 0
-      ? combo.slots
-      : (combo.models || []).map((mid) => ({
-          model_id: mid,
-          account_ids: null,
-          slot_strategy: combo.strategy,
-        }));
-
-    for (const slot of slots) {
-      const aid = slot.account_ids?.[0];
-      const acc = aid
-        ? accounts.find((a) => a.id === aid)
-        : accounts.find((a) => a.id === slot.model_id || a.modelOptions.some((m) => m.id === slot.model_id));
-      const m = acc?.modelOptions.find((o) => o.id === slot.model_id) ??
-        allModelOptions.find((o) => o.id === slot.model_id);
-      const icon = m?.icon || acc?.icon || null;
-      const label = m?.label ?? cleanModelName(slot.model_id, accounts);
-
-      const last = groups[groups.length - 1];
-      if (last && last.modelId === slot.model_id) {
-        last.count += 1;
-        if (acc && !last.accounts.some((a) => a.id === acc.id)) {
-          last.accounts.push(acc);
-        }
-      } else {
-        groups.push({
-          modelId: slot.model_id,
-          label,
-          icon,
-          accounts: acc ? [acc] : [],
-          count: 1,
-        });
-      }
-    }
-    return groups;
-  }, [combo.slots, combo.models, combo.strategy, accounts, allModelOptions]);
-
-  return (
-    <Card className={styles.comboCard}>
-      <div className={styles.comboCardTop}>
-        <div className={styles.comboCardMeta}>
-          <span className={`${styles.dot} ${combo.enabled ? styles.dotActive : styles.dotOff}`} />
-          <h3 className={styles.comboName}>{combo.name}</h3>
-          {!combo.enabled && <span className={styles.disabledTag}>{t("combos.disabled")}</span>}
-          <span className={styles.comboBadge}>{chainStrategyLabel(combo.strategy)}</span>
-        </div>
-        <div className={styles.comboCardActions}>
-          <Button size="small" variant="secondary" onClick={onToggle}>
-            {combo.enabled ? t("combos.disable") : t("combos.enable")}
-          </Button>
-          <Button size="small" variant="secondary" onClick={onEdit}>{t("common.edit")}</Button>
-          <Button size="small" variant="secondary" onClick={onDelete}>{t("common.delete")}</Button>
-        </div>
-      </div>
-      {combo.description && <p className={styles.comboDesc}>{combo.description}</p>}
-      <div className={styles.slotReadList}>
-        {groupedSlots.map((group, idx) => (
-          <div key={idx} className={styles.slotReadGroup}>
-            <div className={styles.slotRead}>
-              <span className={styles.slotReadIndex}>{idx + 1}</span>
-              {group.icon && <img src={group.icon} alt="" className={styles.slotReadIcon} />}
-              <span className={styles.slotReadName}>{group.label}</span>
-              {group.count > 1 ? (
-                <span className={styles.slotReadAccount}>
-                  {t("combos.account_pool_format", { count: group.count, accounts: group.accounts.map((a) => a.label).join(", ") })}
-                </span>
-              ) : group.accounts[0] ? (
-                <span className={styles.slotReadAccount}>
-                  {group.accounts[0].label}
-                </span>
-              ) : null}
-            </div>
-            {idx < groupedSlots.length - 1 && (
-              <span className={styles.slotArrow}>
-                <Icon icon={combo.strategy === "round_robin" ? refreshIcon : combo.strategy === "fill_first" ? skipForwardIcon : arrowRightIcon} size="1em" />
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
-}
-
-// ─── Util ─────────────────────────────────────────────────────────────────────
-function cleanModelName(modelId: string, accounts: Account[]): string {
-  if (!modelId) return "";
-  for (const acc of accounts) {
-    const m = acc.modelOptions.find((opt) => opt.id === modelId);
-    if (m?.label) return m.label;
-  }
-  if (modelId.startsWith("plugin:")) {
-    const lastSlash = modelId.lastIndexOf("/");
-    if (lastSlash !== -1 && lastSlash < modelId.length - 1) {
-      return modelId.substring(lastSlash + 1);
-    }
-  }
-  return modelId;
-}
-
-function getSlotAccount(slot: ComboSlot, accounts: Account[]): Account | undefined {
-  const aid = slot.account_ids?.[0];
-  if (aid) {
-    const acc = accounts.find((a) => a.id === aid);
-    if (acc) return acc;
-  }
-  return accounts.find((a) => a.id === slot.model_id || a.modelOptions.some((m) => m.id === slot.model_id));
-}
-
-function providerDomain(baseUrl: string) {
-  try { return new URL(baseUrl).hostname.replace(/^www\./, ""); }
-  catch { try { return new URL(`https://${baseUrl}`).hostname; } catch { return baseUrl; } }
 }
