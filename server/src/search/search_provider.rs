@@ -23,8 +23,16 @@ enum ContentSelection {
 
 #[derive(Debug, Deserialize)]
 struct SearchArguments {
+    #[serde(default)]
     query: String,
+    #[serde(default)]
     repo: String,
+    #[serde(default)]
+    symbol: Option<String>,
+    #[serde(default)]
+    file_path: Option<String>,
+    #[serde(default)]
+    line: Option<usize>,
     #[serde(default = "default_top_k")]
     top_k: usize,
     #[serde(default = "default_snippet_lines")]
@@ -38,22 +46,38 @@ pub(crate) async fn execute(
     arguments: Value,
     store: Option<Store>,
 ) -> std::result::Result<Value, String> {
-    // `semblesearch` is the pre-audit wire name of `SemanticSearch`. It stays as
-    // an alias so tool calls replayed from an older checkpoint still resolve.
-    if tool_name != "semanticsearch" && tool_name != "semblesearch" {
+    // `semblesearch` is the pre-audit wire name of `SemanticSearch`.
+    // `deepsearch`, `gotodefinition`, `searchsymbols` extend the codebase navigation capabilities.
+    if !matches!(
+        tool_name,
+        "semanticsearch" | "semblesearch" | "deepsearch" | "gotodefinition" | "searchsymbols"
+    ) {
         return Err(format!("unsupported search tool: {tool_name}"));
     }
-    let arguments: SearchArguments =
+    let mut args: SearchArguments =
         serde_json::from_value(arguments).map_err(|error| error.to_string())?;
+
+    // If query is empty but symbol or other fields are present
+    if args.query.is_empty() {
+        if let Some(ref sym) = args.symbol {
+            args.query = sym.clone();
+        } else if let Some(ref fp) = args.file_path {
+            args.query = fp.clone();
+        }
+    }
+    if args.repo.is_empty() {
+        args.repo = ".".into();
+    }
+
     let engine = engine(store).await.map_err(|error| error.to_string())?;
     tokio::task::spawn_blocking(move || {
         engine
             .search(SearchRequest {
-                query: arguments.query,
-                repo: arguments.repo.into(),
-                top_k: arguments.top_k,
-                max_snippet_lines: arguments.max_snippet_lines,
-                content: content(arguments.content),
+                query: args.query,
+                repo: args.repo.into(),
+                top_k: args.top_k,
+                max_snippet_lines: args.max_snippet_lines,
+                content: content(args.content),
             })
             .and_then(json_value)
     })

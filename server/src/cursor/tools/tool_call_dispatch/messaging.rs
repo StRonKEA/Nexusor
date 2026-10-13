@@ -17,6 +17,7 @@ pub(super) fn start(results: &ToolResultSender, call: &ToolCall) -> Result<ToolS
             name if name.contains("creategoal") => result::create_goal(&call).await,
             name if name.contains("updategoal") => result::update_goal(&call).await,
             name if name.contains("reflect") => result::reflect(&call).await,
+            name if name.contains("creatediagram") => result::create_diagram(&call).await,
             name if name.contains("sendto") => result::send_to_user(&call).await,
             name if name.contains("finalsummary") => result::send_final_summary(&call).await,
             _ => result::send_message(&call).await,

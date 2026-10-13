@@ -94,6 +94,35 @@ pub(crate) async fn send_message(call: &ToolCall) -> Result<ToolCompletion> {
     ))
 }
 
+pub(crate) async fn create_diagram(call: &ToolCall) -> Result<ToolCompletion> {
+    let diagram = text(call, &["content", "diagram", "mermaid", "chart"]);
+    Ok(ToolCompletion::new(
+        call,
+        now_ms(),
+        ToolResult {
+            call_id: call.call_id.clone(),
+            content: format!("Diagram rendered successfully:\n{diagram}"),
+            is_error: false,
+            image: None,
+            images: Vec::new(),
+        },
+        pb::tool_call::Tool::CreatePlanToolCall(pb::CreatePlanToolCall {
+            args: Some(pb::CreatePlanArgs {
+                plan: format!("# Architecture Diagram\n\n```mermaid\n{diagram}\n```"),
+                todos: Vec::new(),
+                overview: "Architecture Diagram".into(),
+                name: "diagram".into(),
+                is_project: false,
+                phases: Vec::new(),
+            }),
+            result: Some(pb::CreatePlanResult {
+                plan_uri: "diagram.md".into(),
+                result: None,
+            }),
+        }),
+    ))
+}
+
 pub(crate) async fn send_final_summary(call: &ToolCall) -> Result<ToolCompletion> {
     let summary = text(call, &["final_summary", "summary", "message"]);
     Ok(ToolCompletion::new(

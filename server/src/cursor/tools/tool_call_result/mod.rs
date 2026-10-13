@@ -33,7 +33,7 @@ pub(crate) use goal_tools::{create_goal, update_goal};
 pub(crate) use interaction::{complete_web_fetch, complete_web_search, from_interaction};
 pub(crate) use local::{cloud_task_unsupported, local, subagents_disabled, todo_items};
 pub(crate) use mcp::failure as mcp_failure;
-pub(crate) use message_tools::{send_final_summary, send_message, send_to_user};
+pub(crate) use message_tools::{create_diagram, send_final_summary, send_message, send_to_user};
 pub(crate) use reflect::reflect;
 pub(crate) use search::complete as semantic_search;
 
