@@ -30,6 +30,7 @@ pub fn router(registry: TransportRegistry) -> Router {
     Router::new()
         .route("/v1/models", get(list_models))
         .route("/v1/chat/completions", post(chat_completions))
+        .route("/v1/completions", post(text_completions))
         .with_state(registry)
 }
 
@@ -442,3 +443,45 @@ async fn chat_completions(
         Json(resp).into_response()
     }
 }
+
+#[derive(Debug, Deserialize)]
+struct TextCompletionRequest {
+    model: String,
+    prompt: Value,
+    #[serde(default)]
+    stream: bool,
+    #[serde(default)]
+    max_tokens: Option<u64>,
+}
+
+async fn text_completions(
+    State(registry): State<TransportRegistry>,
+    Json(payload): Json<TextCompletionRequest>,
+) -> Response {
+    let prompt_text = match payload.prompt {
+        Value::String(s) => s,
+        Value::Array(arr) => arr
+            .into_iter()
+            .filter_map(|v| v.as_str().map(String::from))
+            .collect::<Vec<_>>()
+            .join("\n"),
+        _ => String::new(),
+    };
+
+    let chat_req = ChatCompletionRequest {
+        model: payload.model,
+        messages: vec![json!({
+            "role": "user",
+            "content": prompt_text
+        })],
+        tools: None,
+        reasoning_effort: None,
+        thinking_budget: None,
+        stream: payload.stream,
+        _temperature: None,
+        max_tokens: payload.max_tokens,
+    };
+
+    chat_completions(State(registry), Json(chat_req)).await
+}
+

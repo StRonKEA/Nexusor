@@ -26,6 +26,7 @@ use crate::{
 pub fn router(registry: TransportRegistry) -> Router {
     Router::new()
         .route("/v1/messages", post(claude_messages))
+        .route("/v1/messages/count_tokens", post(claude_count_tokens))
         .with_state(registry)
 }
 
@@ -313,3 +314,41 @@ async fn claude_messages(
         Json(resp).into_response()
     }
 }
+
+async fn claude_count_tokens(
+    Json(payload): Json<ClaudeMessagesRequest>,
+) -> Response {
+    let history = parse_claude_messages(&payload.messages);
+    let mut total_chars = 0;
+    if let Some(sys) = payload.system {
+        if let Some(s) = sys.as_str() {
+            total_chars += s.len();
+        }
+    }
+    for msg in history {
+        match msg.content {
+            crate::model::ProjectedContent::Parts(parts) => {
+                for p in parts {
+                    if let crate::model::ContentPart::Text { text } = p {
+                        total_chars += text.len();
+                    }
+                }
+            }
+            crate::model::ProjectedContent::Assistant { text, .. } => {
+                total_chars += text.len();
+            }
+            crate::model::ProjectedContent::ToolResult(res) => {
+                total_chars += res.content.len();
+            }
+        }
+    }
+
+    // Standard rule of thumb: ~4 characters per token
+    let estimated_tokens = (total_chars / 4).max(1);
+
+    Json(json!({
+        "input_tokens": estimated_tokens
+    }))
+    .into_response()
+}
+
