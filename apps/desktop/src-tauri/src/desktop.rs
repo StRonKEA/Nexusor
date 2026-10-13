@@ -87,7 +87,7 @@ fn set_headless_service(_app: AppHandle, enabled: bool) -> Result<(), String> {
             let _ = run_key.delete_value("Nexusor");
             let _ = run_key.delete_value("NexusorHeadlessService");
         }
-        return Ok(());
+        Ok(())
     }
     #[cfg(not(windows))]
     {

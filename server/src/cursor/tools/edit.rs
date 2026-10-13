@@ -159,8 +159,7 @@ fn apply_patch(call: &ToolCall, before: &str) -> std::result::Result<String, Str
                 lines.insert(current_idx, addition);
                 current_idx += 1;
             }
-        } else if line.starts_with(' ') {
-            let context = &line[1..];
+        } else if let Some(context) = line.strip_prefix(' ') {
             if let Some(pos) = lines[current_idx..].iter().position(|l| *l == context) {
                 current_idx += pos + 1;
             }
