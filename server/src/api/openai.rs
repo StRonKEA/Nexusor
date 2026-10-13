@@ -280,17 +280,23 @@ async fn chat_completions(
     let cancellation = CancellationToken::new();
     let provider = registry.provider();
     let mut event_stream = provider.stream(invocation, cancellation);
+    let current_timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(1700000000);
 
     if payload.stream {
         let model = payload.model;
         let s = stream! {
+            let mut output_tokens = 0;
             while let Some(item) = event_stream.next().await {
                 match item {
                     Ok(ModelEvent::TextDelta(text)) => {
+                        output_tokens += 1;
                         let chunk = json!({
                             "id": &call_id,
                             "object": "chat.completion.chunk",
-                            "created": 1700000000,
+                            "created": current_timestamp,
                             "model": &model,
                             "choices": [{
                                 "index": 0,
@@ -302,11 +308,27 @@ async fn chat_completions(
                         });
                         yield Ok::<_, Infallible>(format!("data: {}\n\n", serde_json::to_string(&chunk).unwrap()));
                     }
+                    Ok(ModelEvent::ThinkingDelta(thinking_text)) => {
+                        let chunk = json!({
+                            "id": &call_id,
+                            "object": "chat.completion.chunk",
+                            "created": current_timestamp,
+                            "model": &model,
+                            "choices": [{
+                                "index": 0,
+                                "delta": {
+                                    "reasoning_content": thinking_text
+                                },
+                                "finish_reason": null
+                            }]
+                        });
+                        yield Ok::<_, Infallible>(format!("data: {}\n\n", serde_json::to_string(&chunk).unwrap()));
+                    }
                     Ok(ModelEvent::ToolCallStart { index, call_id: tc_id, name }) => {
                         let chunk = json!({
                             "id": &call_id,
                             "object": "chat.completion.chunk",
-                            "created": 1700000000,
+                            "created": current_timestamp,
                             "model": &model,
                             "choices": [{
                                 "index": 0,
@@ -330,7 +352,7 @@ async fn chat_completions(
                         let chunk = json!({
                             "id": &call_id,
                             "object": "chat.completion.chunk",
-                            "created": 1700000000,
+                            "created": current_timestamp,
                             "model": &model,
                             "choices": [{
                                 "index": 0,
@@ -356,13 +378,18 @@ async fn chat_completions(
                         let chunk = json!({
                             "id": &call_id,
                             "object": "chat.completion.chunk",
-                            "created": 1700000000,
+                            "created": current_timestamp,
                             "model": &model,
                             "choices": [{
                                 "index": 0,
                                 "delta": {},
                                 "finish_reason": finish_reason
-                            }]
+                            }],
+                            "usage": {
+                                "completion_tokens": output_tokens,
+                                "prompt_tokens": 0,
+                                "total_tokens": output_tokens
+                            }
                         });
                         yield Ok::<_, Infallible>(format!("data: {}\n\n", serde_json::to_string(&chunk).unwrap()));
                         yield Ok::<_, Infallible>("data: [DONE]\n\n".to_string());
@@ -392,13 +419,20 @@ async fn chat_completions(
         (headers, Body::from_stream(s)).into_response()
     } else {
         let mut full_text = String::new();
+        let mut reasoning_text = String::new();
         let mut tool_calls = Vec::new();
         let mut finish_reason = "stop".to_string();
+        let mut output_tokens = 0;
 
         while let Some(item) = event_stream.next().await {
             match item {
                 Ok(ModelEvent::TextDelta(text)) => {
+                    output_tokens += 1;
                     full_text.push_str(&text);
+                }
+                Ok(ModelEvent::ThinkingDelta(text)) => {
+                    output_tokens += 1;
+                    reasoning_text.push_str(&text);
                 }
                 Ok(ModelEvent::ToolCallStart { index, call_id: tc_id, name }) => {
                     tool_calls.push(json!({
@@ -451,6 +485,9 @@ async fn chat_completions(
         } else {
             message["content"] = Value::Null;
         }
+        if !reasoning_text.is_empty() {
+            message["reasoning_content"] = Value::String(reasoning_text);
+        }
         if !tool_calls.is_empty() {
             message["tool_calls"] = Value::Array(tool_calls);
         }
@@ -458,13 +495,18 @@ async fn chat_completions(
         let resp = json!({
             "id": call_id,
             "object": "chat.completion",
-            "created": 1700000000,
+            "created": current_timestamp,
             "model": payload.model,
             "choices": [{
                 "index": 0,
                 "message": message,
                 "finish_reason": finish_reason
-            }]
+            }],
+            "usage": {
+                "completion_tokens": output_tokens,
+                "prompt_tokens": 0,
+                "total_tokens": output_tokens
+            }
         });
 
         Json(resp).into_response()

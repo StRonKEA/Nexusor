@@ -159,6 +159,18 @@ async fn claude_messages(
                         });
                         yield Ok::<_, Infallible>(format!("event: content_block_delta\ndata: {}\n\n", serde_json::to_string(&delta).unwrap()));
                     }
+                    Ok(ModelEvent::ThinkingDelta(thinking_text)) => {
+                        output_tokens += 1;
+                        let delta = json!({
+                            "type": "content_block_delta",
+                            "index": block_index,
+                            "delta": {
+                                "type": "thinking_delta",
+                                "thinking": thinking_text
+                            }
+                        });
+                        yield Ok::<_, Infallible>(format!("event: content_block_delta\ndata: {}\n\n", serde_json::to_string(&delta).unwrap()));
+                    }
                     Ok(ModelEvent::ToolCallStart { index: _, call_id: tc_id, name }) => {
                         if text_block_open {
                             text_block_open = false;
