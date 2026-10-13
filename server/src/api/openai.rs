@@ -29,6 +29,7 @@ use crate::{
 pub fn router(registry: TransportRegistry) -> Router {
     Router::new()
         .route("/v1/models", get(list_models))
+        .route("/v1/models/{*model_id}", get(get_model))
         .route("/v1/chat/completions", post(chat_completions))
         .route("/v1/completions", post(text_completions))
         .with_state(registry)
@@ -97,6 +98,18 @@ async fn list_models(
         object: "list",
         data,
     }))
+}
+
+async fn get_model(
+    axum::extract::Path(model_id): axum::extract::Path<String>,
+) -> Response {
+    let item = OpenAIModelItem {
+        id: model_id,
+        object: "model",
+        created: 1700000000,
+        owned_by: "nexusor",
+    };
+    Json(item).into_response()
 }
 
 #[derive(Debug, Deserialize)]

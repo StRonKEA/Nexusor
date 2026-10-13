@@ -259,12 +259,21 @@ async fn claude_messages(
     } else {
         let mut full_text = String::new();
         let mut content_blocks = Vec::new();
+        let mut tool_calls = Vec::new();
         let mut stop_reason = "end_turn".to_string();
 
         while let Some(item) = event_stream.next().await {
             match item {
                 Ok(ModelEvent::TextDelta(text)) => {
                     full_text.push_str(&text);
+                }
+                Ok(ModelEvent::ToolCallStart { index: _, call_id: tc_id, name }) => {
+                    tool_calls.push((tc_id, name, String::new()));
+                }
+                Ok(ModelEvent::ToolCallArgumentsDelta { index, delta }) => {
+                    if let Some(call) = tool_calls.get_mut(index) {
+                        call.2.push_str(&delta);
+                    }
                 }
                 Ok(ModelEvent::Done(finish)) => {
                     stop_reason = match finish {
@@ -294,6 +303,16 @@ async fn claude_messages(
             content_blocks.push(json!({
                 "type": "text",
                 "text": full_text
+            }));
+        }
+
+        for (tc_id, name, args_str) in tool_calls {
+            let input: Value = serde_json::from_str(&args_str).unwrap_or_else(|_| json!({}));
+            content_blocks.push(json!({
+                "type": "tool_use",
+                "id": tc_id,
+                "name": name,
+                "input": input
             }));
         }
 
