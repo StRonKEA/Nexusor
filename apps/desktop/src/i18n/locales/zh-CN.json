@@ -674,5 +674,11 @@
   "settings.quota_notifications_enable_hint": "Send desktop notifications when account quota is exhausted, cooled down, or drops below the warning threshold.",
   "settings.quota_notifications_enable_label": "Enable Quota & Cooldown Notifications",
   "settings.quota_notifications_enabled": "Desktop quota notifications enabled",
-  "cursor.local_ca_certificate": "cursor.local_ca_certificate"
+  "cursor.local_ca_certificate": "cursor.local_ca_certificate",
+  "common.copied": "common.copied",
+  "common.copied_to_clipboard": "common.copied_to_clipboard",
+  "common.copy_failed": "common.copy_failed",
+  "home.api_gateway_subtitle": "home.api_gateway_subtitle",
+  "home.api_gateway_title": "home.api_gateway_title",
+  "home.quick_configs": "home.quick_configs"
 }

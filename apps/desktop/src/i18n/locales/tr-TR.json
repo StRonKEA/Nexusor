@@ -317,6 +317,9 @@
   "home.btn_connect_account": "Hesap Bağla",
   "home.empty_onboarding_title": "Nexusor'a Hoş Geldiniz",
   "home.empty_onboarding_desc": "Cursor'u kendi modelleriniz ve ücretsiz kotalarınızla çalıştırmak için tek adımda Google, OpenAI veya xAI hesabınızı bağlayın.",
+  "home.api_gateway_title": "Harici API Erişimi & Yerel AI Geçidi",
+  "home.api_gateway_subtitle": "Nexusor modellerini ve kotalarını Cline, Continue, Aider veya Claude Code üzerinde kullanın",
+  "home.quick_configs": "Hızlı Yapılandırmayı Kopyala",
   "home.empty_onboarding_action": "İlk Hesabınızı Ekleyin",
   "models.add_model": "Model ekle",
   "models.advanced": "Gelişmiş",
@@ -684,5 +687,8 @@
   "shell.maximize_window": "Pencereyi büyüt",
   "shell.minimize_window": "Pencereyi küçült",
   "shell.restore_window": "Pencereyi geri yükle",
-  "cursor.local_ca_certificate": "cursor.local_ca_certificate"
+  "cursor.local_ca_certificate": "cursor.local_ca_certificate",
+  "common.copied": "common.copied",
+  "common.copied_to_clipboard": "common.copied_to_clipboard",
+  "common.copy_failed": "common.copy_failed"
 }

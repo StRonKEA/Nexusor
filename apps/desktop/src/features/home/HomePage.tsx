@@ -8,6 +8,7 @@ import { useI18n } from "../../i18n/store";
 import { Icon } from "../../shared/ui/Icon";
 import { clockIcon, chevronDownIcon, closeIcon, providerIcon } from "../../shared/ui/icons";
 import { formatCompactInteger } from "../../shared/utils/numberFormat";
+import { HomeAccessPanel } from "./HomeAccessPanel";
 import styles from "./HomePage.module.scss";
 
 export function HomePage() {
@@ -265,6 +266,9 @@ export function HomePage() {
 
   const dashboardContent = (
     <div className={styles.dashboard}>
+      {/* ── API Access Gateway Panel (OpenAI & Claude endpoints for external clients) ── */}
+      <HomeAccessPanel />
+
       {/* ── Empty State Onboarding: When no accounts are connected ── */}
       {allAccounts.length === 0 ? (
         <div className={styles.onboardingCard}>

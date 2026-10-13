@@ -684,5 +684,11 @@
   "shell.maximize_window": "Maximize window",
   "shell.minimize_window": "Minimize window",
   "shell.restore_window": "Restore window",
-  "cursor.local_ca_certificate": "cursor.local_ca_certificate"
+  "cursor.local_ca_certificate": "cursor.local_ca_certificate",
+  "common.copied": "common.copied",
+  "common.copied_to_clipboard": "common.copied_to_clipboard",
+  "common.copy_failed": "common.copy_failed",
+  "home.api_gateway_subtitle": "home.api_gateway_subtitle",
+  "home.api_gateway_title": "home.api_gateway_title",
+  "home.quick_configs": "home.quick_configs"
 }
