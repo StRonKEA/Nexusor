@@ -38,16 +38,24 @@ export function CombosPage() {
   const [comboStrategy, setComboStrategy] = useState<"fallback" | "round_robin">("fallback");
   const [selectedModelList, setSelectedModelList] = useState<string[]>([]);
 
-  // Collect all usable model IDs across plugins and manual configs
+  // Collect all usable model IDs across plugins and manual configs grouped with provider name
   const allAvailableModels = useMemo(() => {
-    const list: Array<{ id: string; name: string }> = [];
+    const list: Array<{ id: string; name: string; provider: string }> = [];
     const pModels = configuredPluginModels(plugins);
     for (const m of pModels) {
-      list.push({ id: m.id, name: `${m.displayName || m.id}` });
+      list.push({
+        id: m.id,
+        name: m.displayName || m.modelId,
+        provider: m.pluginName || "Dahili Sağlayıcı",
+      });
     }
     for (const m of models) {
       if (!list.some((item) => item.id === m.model_id)) {
-        list.push({ id: m.model_id, name: `${m.display_name || m.model_id} (Manuel)` });
+        list.push({
+          id: m.model_id,
+          name: m.display_name || m.model_id,
+          provider: m.group_name || "Manuel API",
+        });
       }
     }
     return list;
@@ -208,7 +216,7 @@ export function CombosPage() {
               <option value="">(Otomatik - En Uygun Modeli Seç)</option>
               {allAvailableModels.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.name}
+                  {m.name} [{m.provider}]
                 </option>
               ))}
             </select>
@@ -226,7 +234,7 @@ export function CombosPage() {
               <option value="">(Otomatik - Düşünme Modelini Seç)</option>
               {allAvailableModels.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.name}
+                  {m.name} [{m.provider}]
                 </option>
               ))}
             </select>
@@ -244,7 +252,7 @@ export function CombosPage() {
               <option value="">(Otomatik - En Hızlı Modeli Seç)</option>
               {allAvailableModels.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.name}
+                  {m.name} [{m.provider}]
                 </option>
               ))}
             </select>
@@ -289,7 +297,7 @@ export function CombosPage() {
 
             <div className={styles.slotPicker}>
               <span className={styles.slotPickerLabel}>
-                Zincire Eklenecek Modelleri Sırayla Seçin (Tıklayarak ekleyin):
+                Zincire Eklenecek Modelleri Sırayla Seçin (Sağlayıcısına göre tıklayın):
               </span>
               <div className={styles.slotChips}>
                 {allAvailableModels.map((m) => {
@@ -302,8 +310,9 @@ export function CombosPage() {
                       className={`${styles.slotChip} ${isSelected ? styles.slotChipSelected : ""}`}
                       onClick={() => toggleModelInNewCombo(m.id)}
                     >
-                      {isSelected && <span>{orderIdx + 1}.</span>}
+                      {isSelected && <strong>{orderIdx + 1}.</strong>}
                       <span>{cleanName(m.id)}</span>
+                      <small style={{ opacity: 0.6, fontSize: "10px", marginLeft: "4px" }}>({m.provider})</small>
                     </button>
                   );
                 })}

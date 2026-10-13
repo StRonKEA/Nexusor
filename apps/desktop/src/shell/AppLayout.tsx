@@ -10,7 +10,7 @@ import { TooltipTrigger } from "../shared/ui/TooltipTrigger";
 import {
   activityIcon,
   combosIcon,
-  cursorIcon,
+  clientsIcon,
   homeIcon,
   modelsIcon,
   refreshIcon,
@@ -27,7 +27,7 @@ type MenuItem =
 const keptAlivePages = ["/", "/calls", "/settings", "/cursor", "/providers", "/models", "/combos"];
 
 export function AppLayout() {
-  const { busy, cursorHarness } = useAppStore();
+  const { busy } = useAppStore();
   const location = useLocation();
   const [leftActionTarget, setLeftActionTarget] = useState<HTMLDivElement | null>(null);
   const [rightActionTarget, setRightActionTarget] = useState<HTMLDivElement | null>(null);
@@ -35,7 +35,7 @@ export function AppLayout() {
   const menuItems: MenuItem[] = [
     { kind: "group", label: t("nav.general") },
     { kind: "page", path: "/", label: t("nav.overview"), icon: homeIcon, end: true },
-    { kind: "page", path: "/cursor", label: t("nav.clients_and_ides"), icon: cursorIcon },
+    { kind: "page", path: "/cursor", label: t("nav.clients_and_ides"), icon: clientsIcon },
     { kind: "group", label: t("nav.resources") },
     { kind: "page", path: "/models", label: t("nav.models_and_providers"), icon: modelsIcon },
     { kind: "page", path: "/combos", label: t("nav.routing"), icon: combosIcon },
@@ -61,23 +61,15 @@ export function AppLayout() {
                 <NavLink
                   to={item.path}
                   end={item.end ?? item.path === "/"}
-                  data-nav-cursor={item.path === "/cursor" ? (cursorHarness?.settings_applied ? "active" : "inactive") : undefined}
                 >
                   {typeof item.icon === "string" ? (
                     <Icon src={item.icon} size="1.3em" />
                   ) : (
                     <Icon icon={item.icon} size="1.3em" />
                   )}
-                  <span className={item.path === "/cursor" && cursorHarness?.settings_applied ? styles.cursorActiveText : undefined}>
+                  <span>
                     {item.label}
                   </span>
-                  {item.path === "/cursor" && cursorHarness && (
-                    <span
-                      className={styles.cursorStatusDot}
-                      data-taken={cursorHarness.settings_applied ? "true" : "false"}
-                      title={cursorHarness.settings_applied ? t("cursor.taken_over") : t("cursor.not_taken_over")}
-                    />
-                  )}
                 </NavLink>
               </div>
             )
