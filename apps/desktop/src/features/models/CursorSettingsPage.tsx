@@ -281,17 +281,7 @@ export function CursorSettingsPage() {
   const estimatedModelHeight = Math.max(480, (pluginModels.length + models.length) * 64 + 140);
 
   return <>
-    <PageActions>
-      <button
-        type="button"
-        className={controls.secondary}
-        onClick={() => navigate("/providers")}
-        style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: "0.35rem 0.75rem", fontSize: "0.85rem" }}
-      >
-        {t("cursor.manage_providers")}
-      </button>
-    </PageActions>
-    <PageContent title={t("models.models")} sections={[{ key: "cursor-settings", estimatedHeight: estimatedModelHeight, content }]} />
+    <PageContent sections={[{ key: "cursor-settings", estimatedHeight: estimatedModelHeight, content }]} />
     <Modal fullHeight open={draft !== null} title={editing ? t("models.edit_model") : t("models.add_model")} banner={draft && (editorTesting || editorTestState) ? <CursorModelTestResult state={editorTestState} testing={editorTesting} /> : undefined} busy={cursorBusy || savingAndTesting} onClose={() => { if (editing && editorTesting) void cancelModelTest(editing.model_hash); setDraft(null); setEditing(null); }} onSubmit={() => void save()} submitLabel={t("common.save")} secondaryAction={<button type="button" className={controls.secondary} disabled={cursorBusy || savingAndTesting} onClick={() => void (editorTesting && editing ? cancelModelTest(editing.model_hash) : saveAndTest())}>{savingAndTesting ? t("common.processing") : editorTesting ? t("models.cancel_test") : t("models.save_and_test")}</button>}>
       {draft && <>
         <CursorModelEditor draft={draft} modelOptions={modelOptions} discovering={discovering} onChange={setDraft} onDiscover={discover} isEditing={Boolean(editing)} />

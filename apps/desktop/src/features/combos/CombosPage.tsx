@@ -300,21 +300,21 @@ export function CombosPage() {
           className={`${styles.mainTabButton} ${mainTab === "auto" ? styles.mainTabActive : ""}`}
           onClick={() => setMainTab("auto")}
         >
-          <span>{t("combos.tab_auto")}</span>
+          <span>Akıllı Mod (Auto Router)</span>
         </button>
         <button
           type="button"
           className={`${styles.mainTabButton} ${mainTab === "chains" ? styles.mainTabActive : ""}`}
           onClick={() => setMainTab("chains")}
         >
-          <span>{t("combos.tab_chains", { count: combos.length })}</span>
+          <span>Özel Yedekleme Zincirleri ({combos.length})</span>
         </button>
         <button
           type="button"
           className={`${styles.mainTabButton} ${mainTab === "engines" ? styles.mainTabActive : ""}`}
           onClick={() => setMainTab("engines")}
         >
-          <span>{t("combos.tab_engines")}</span>
+          <span>Gelişmiş Ajan Motorları</span>
         </button>
       </div>
 
