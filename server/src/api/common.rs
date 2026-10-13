@@ -167,6 +167,20 @@ pub fn parse_claude_messages(messages_val: &[Value]) -> Vec<ProjectedMessage> {
                                     text: t.to_string(),
                                 });
                             }
+                        } else if block_type == "image" {
+                            if let Some(source) = item.get("source") {
+                                if source.get("type").and_then(|v| v.as_str()) == Some("base64") {
+                                    let mime = source.get("media_type").and_then(|v| v.as_str()).unwrap_or("image/png");
+                                    let b64 = source.get("data").and_then(|v| v.as_str()).unwrap_or_default();
+                                    use base64::{engine::general_purpose::STANDARD, Engine};
+                                    if let Ok(data) = STANDARD.decode(b64.trim()) {
+                                        parts.push(ContentPart::Image {
+                                            mime_type: mime.to_string(),
+                                            data,
+                                        });
+                                    }
+                                }
+                            }
                         } else if block_type == "tool_result" {
                             let call_id = item
                                 .get("tool_use_id")

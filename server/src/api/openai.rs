@@ -194,24 +194,38 @@ async fn chat_completions(
                 });
             }
             _ => {
-                let text = match content_val {
-                    Some(Value::String(s)) => s.clone(),
-                    Some(Value::Array(arr)) => {
-                        let mut parts = Vec::new();
-                        for item in arr {
+                let mut parts = Vec::new();
+                if let Some(Value::String(s)) = content_val {
+                    parts.push(ContentPart::Text { text: s.clone() });
+                } else if let Some(Value::Array(arr)) = content_val {
+                    for item in arr {
+                        let item_type = item.get("type").and_then(|v| v.as_str()).unwrap_or("");
+                        if item_type == "text" {
                             if let Some(t) = item.get("text").and_then(|v| v.as_str()) {
-                                parts.push(t.to_string());
+                                parts.push(ContentPart::Text { text: t.to_string() });
+                            }
+                        } else if item_type == "image_url" {
+                            if let Some(url_str) = item.pointer("/image_url/url").and_then(|v| v.as_str()) {
+                                if let Some(stripped) = url_str.strip_prefix("data:") {
+                                    if let Some((mime, b64)) = stripped.split_once(";base64,") {
+                                        use base64::{engine::general_purpose::STANDARD, Engine};
+                                        if let Ok(data) = STANDARD.decode(b64.trim()) {
+                                            parts.push(ContentPart::Image {
+                                                mime_type: mime.to_string(),
+                                                data,
+                                            });
+                                        }
+                                    }
+                                }
                             }
                         }
-                        parts.join("\n")
                     }
-                    _ => String::new(),
-                };
+                }
 
                 history.push(ProjectedMessage {
                     message_id: uuid::Uuid::new_v4().to_string(),
                     role: Role::User,
-                    content: ProjectedContent::Parts(vec![ContentPart::Text { text }]),
+                    content: ProjectedContent::Parts(parts),
                 });
             }
         }
