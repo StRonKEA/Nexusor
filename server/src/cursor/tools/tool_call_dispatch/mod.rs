@@ -67,23 +67,29 @@ pub(super) async fn start(
         | "callmcptool" | "fetchmcpresource" | "listmcpresources" | "getmcptools"
         | "readfile" | "readfilev2" | "deletefile" | "filesearch" | "globfilesearch"
         | "ripgrepsearch" | "ripgreprawsearch" | "listdirv2" | "taskv2"
-        | "fixlints" | "connectscm" => {
+        | "fixlints" | "connectscm" | "runterminalcommandv2" | "backgroundcomposerfollowup"
+        | "pibash" | "piread" | "pigrep" | "pifind" | "pils" => {
             exec::start(runtime, call, context).await
         }
         "write" | "strreplace" | "editnotebook" | "applypatch" | "editfile" | "editfilev2"
-        | "reapply" | "applyagentdiff" => {
+        | "reapply" | "applyagentdiff" | "piedit" | "piwrite" => {
             edit::start(runtime, call, context).await
         }
         "askquestion" | "websearch" | "webfetch" | "switchmode" | "createplan"
-        | "generateimage" | "fetchrules" | "fetchpullrequest" => interaction::start(runtime, call).await,
-        "todowrite" | "updatecurrentstep" | "todoread" | "readproject" | "updateproject" => {
+        | "generateimage" | "fetchrules" | "fetchpullrequest"
+        | "prmanagement" | "setactivebranch" | "updateprcodetour" | "editprlabels" | "fetchcloudagentdata" => {
+            interaction::start(runtime, call).await
+        }
+        "todowrite" | "updatecurrentstep" | "todoread" | "readproject" | "updateproject" | "readtodos" => {
             local::start(call, message_index)
         }
         "await" | "awaittask" => wait::start(runtime, results, call),
         "sendtouser" | "sendmessage" | "sendfinalsummary" | "reflect" | "creategoal"
-        | "updategoal" | "aiattribution" => messaging::start(results, call),
+        | "updategoal" | "aiattribution" | "startgrindexecution" | "startgrindplanning" => {
+            messaging::start(results, call)
+        }
         "semanticsearch" | "semblesearch" | "deepsearch" | "gotodefinition" | "searchsymbols"
-        | "semanticsearchfull" | "readsemsearchfiles" | "knowledgebase" => {
+        | "semanticsearchfull" | "readsemsearchfiles" | "knowledgebase" | "blamebyfilepath" => {
             search::start(results, call, store.cloned())
         }
         "creatediagram" => messaging::start(results, call),

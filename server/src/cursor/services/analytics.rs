@@ -35,6 +35,9 @@ const FEATURE_GATES: &[&str] = &[
     "windows_computer_use_batch",
     "instant_grep_indexing",
     "instant_grep_user_search",
+    "custom_agents_enabled",
+    "agent_host_local_loop",
+    "playwright_autorun",
     "glass_custom_modes",
 ];
 const LOCAL_RULE: &str = "local_enabled";
@@ -222,6 +225,9 @@ mod tests {
                 "windows_computer_use_batch",
                 "instant_grep_indexing",
                 "instant_grep_user_search",
+                "custom_agents_enabled",
+                "agent_host_local_loop",
+                "playwright_autorun",
                 "glass_custom_modes",
             ]
         );

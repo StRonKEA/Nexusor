@@ -2019,6 +2019,11 @@ fn ultra_profile() -> Value {
     })
 }
 
+pub async fn scm_generic(request: Request<Body>) -> Result<Response<Body>> {
+    let _ = to_bytes(request.into_body(), usize::MAX).await;
+    proto(Empty {})
+}
+
 #[cfg(test)]
 mod tests {
     use std::sync::{

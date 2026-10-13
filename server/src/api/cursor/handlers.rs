@@ -731,6 +731,38 @@ fn router_with_proxy(
             post(account::batch_get_pull_requests),
         )
         .route(
+            "/aiserver.v1.SCMService/GetPullRequestStack",
+            post(account::scm_generic),
+        )
+        .route(
+            "/aiserver.v1.SCMService/GetPullRequestDiff",
+            post(account::scm_generic),
+        )
+        .route(
+            "/aiserver.v1.SCMService/GetPullRequestFileContents",
+            post(account::scm_generic),
+        )
+        .route(
+            "/aiserver.v1.SCMService/GetPullRequestChecks",
+            post(account::scm_generic),
+        )
+        .route(
+            "/aiserver.v1.SCMService/GetSCMPullRequestCommits",
+            post(account::scm_generic),
+        )
+        .route(
+            "/aiserver.v1.SCMService/GetPullRequestCheckLogExcerpt",
+            post(account::scm_generic),
+        )
+        .route(
+            "/aiserver.v1.SCMService/GetBranchComparison",
+            post(account::scm_generic),
+        )
+        .route(
+            "/aiserver.v1.SCMService/GetPullRequestCodeowners",
+            post(account::scm_generic),
+        )
+        .route(
             "/aiserver.v1.ReviewService/StreamReviewChat",
             post(account::stream_review),
         )

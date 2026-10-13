@@ -211,14 +211,15 @@ pub fn tool_completed(call: &ToolCall, completion: &ToolCompletion) -> pb::Agent
 pub fn tool_placeholder(name: &str, call_id: &str) -> Result<pb::ToolCall> {
     use pb::tool_call::Tool;
     let tool = match normalized(name).as_str() {
-        "shell" | "bash" | "runterminalcommandv2" => Tool::ShellToolCall(pb::ShellToolCall::default()),
+        "shell" | "bash" | "runterminalcommandv2" | "pibash" => Tool::ShellToolCall(pb::ShellToolCall::default()),
         "delete" | "deletefile" => Tool::DeleteToolCall(pb::DeleteToolCall::default()),
-        "glob" | "globfilesearch" => Tool::GlobToolCall(pb::GlobToolCall::default()),
-        "ls" | "listdir" | "listdirv2" => Tool::LsToolCall(pb::LsToolCall::default()),
-        "grep" | "ripgrepsearch" | "ripgreprawsearch" => Tool::GrepToolCall(pb::GrepToolCall::default()),
-        "read" | "readfile" | "readfilev2" => Tool::ReadToolCall(pb::ReadToolCall::default()),
-        "todowrite" | "todoread" | "readproject" | "updateproject" => Tool::UpdateTodosToolCall(pb::UpdateTodosToolCall::default()),
-        "strreplace" | "editnotebook" | "write" | "applypatch" | "editfile" | "editfilev2" | "reapply" | "applyagentdiff" => {
+        "glob" | "globfilesearch" | "pifind" => Tool::GlobToolCall(pb::GlobToolCall::default()),
+        "ls" | "listdir" | "listdirv2" | "pils" => Tool::LsToolCall(pb::LsToolCall::default()),
+        "grep" | "ripgrepsearch" | "ripgreprawsearch" | "pigrep" => Tool::GrepToolCall(pb::GrepToolCall::default()),
+        "read" | "readfile" | "readfilev2" | "piread" => Tool::ReadToolCall(pb::ReadToolCall::default()),
+        "todowrite" | "todoread" | "readproject" | "updateproject" | "readtodos" => Tool::UpdateTodosToolCall(pb::UpdateTodosToolCall::default()),
+        "strreplace" | "editnotebook" | "write" | "applypatch" | "editfile" | "editfilev2" | "reapply" | "applyagentdiff"
+        | "piedit" | "piwrite" => {
             Tool::EditToolCall(pb::EditToolCall::default())
         }
         "recordscreen" => Tool::RecordScreenToolCall(pb::RecordScreenToolCall::default()),
@@ -229,11 +230,11 @@ pub fn tool_placeholder(name: &str, call_id: &str) -> Result<pb::ToolCall> {
         "readlints" | "fixlints" => Tool::ReadLintsToolCall(pb::ReadLintsToolCall::default()),
         "callmcptool" => Tool::McpToolCall(pb::McpToolCall::default()),
         "semanticsearch" | "semblesearch" | "deepsearch" | "gotodefinition" | "searchsymbols"
-        | "semanticsearchfull" | "readsemsearchfiles" | "knowledgebase" => {
+        | "semanticsearchfull" | "readsemsearchfiles" | "knowledgebase" | "blamebyfilepath" => {
             Tool::SemSearchToolCall(pb::SemSearchToolCall::default())
         }
         "creatediagram" => Tool::CreatePlanToolCall(pb::CreatePlanToolCall::default()),
-        "createplan" => Tool::CreatePlanToolCall(pb::CreatePlanToolCall::default()),
+        "createplan" | "startgrindexecution" | "startgrindplanning" => Tool::CreatePlanToolCall(pb::CreatePlanToolCall::default()),
         "await" | "awaittask" => Tool::AwaitToolCall(pb::AwaitToolCall::default()),
         "sendtouser" => Tool::SendToUserToolCall(pb::SendToUserToolCall::default()),
         "sendmessage" => Tool::SendMessageToolCall(pb::SendMessageToolCall::default()),
@@ -252,6 +253,7 @@ pub fn tool_placeholder(name: &str, call_id: &str) -> Result<pb::ToolCall> {
         "listmcpresources" => {
             Tool::ListMcpResourcesToolCall(pb::ListMcpResourcesToolCall::default())
         }
+        "thinking" | "truncated" => Tool::TruncatedToolCall(pb::TruncatedToolCall::default()),
         "askquestion" => Tool::AskQuestionToolCall(pb::AskQuestionToolCall::default()),
         "webfetch" => Tool::WebFetchToolCall(pb::WebFetchToolCall::default()),
         "switchmode" => Tool::SwitchModeToolCall(pb::SwitchModeToolCall::default()),
@@ -260,7 +262,10 @@ pub fn tool_placeholder(name: &str, call_id: &str) -> Result<pb::ToolCall> {
             Tool::CommunicateUpdateToolCall(pb::CommunicateUpdateToolCall::default())
         }
         "getmcptools" => Tool::GetMcpToolsToolCall(pb::GetMcpToolsToolCall::default()),
-        "connectscm" | "fetchpullrequest" | "fetchrules" => Tool::ReadMcpResourceToolCall(pb::ReadMcpResourceToolCall::default()),
+        "connectscm" | "fetchpullrequest" | "fetchrules" | "prmanagement" | "setactivebranch"
+        | "updateprcodetour" | "editprlabels" | "fetchcloudagentdata" => {
+            Tool::ReadMcpResourceToolCall(pb::ReadMcpResourceToolCall::default())
+        }
         _ => return Err(Error::Protocol(format!("unsupported tool: {name}"))),
     };
     Ok(pb::ToolCall {
